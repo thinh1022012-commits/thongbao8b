@@ -3,409 +3,643 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cô hà - Nguyễn Viết Xuân</title>
+    <title id="pageTitle">Hệ Thống Quản Lý Giáo Dục</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- STYLE GIỮ NGUYÊN --- */
-        :root { --pri: #4e54c8; --sec: #8f94fb; --bg: #f4f6f9; }
-        body { font-family: 'Segoe UI', sans-serif; background: #eef2f5; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        /* =========================================
+           1. THIẾT LẬP GIAO DIỆN CƠ BẢN (CSS)
+        ========================================= */
+        :root { --pri: #4e54c8; --sec: #8f94fb; --bg: #f4f6f9; --text: #333; }
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f5; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; color: var(--text); }
         
-        /* LOADING TOÀN MÀN HÌNH */
-        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:10000; display:flex; justify-content:center; align-items:center; flex-direction:column; backdrop-filter: blur(2px); }
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:10000; display:none; justify-content:center; align-items:center; flex-direction:column; backdrop-filter: blur(3px); }
         .spinner { width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid var(--pri); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .mobile-header { display: none; background: var(--pri); color: white; padding: 15px; font-weight: bold; justify-content: space-between; align-items: center; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .menu-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-
-        #loginWrap { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(5px); display:flex; justify-content:center; align-items:center; z-index:999; }
+        #loginWrap { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:999; }
         .login-box { background:white; padding:30px; border-radius:15px; width:90%; max-width: 380px; text-align:center; box-shadow:0 15px 40px rgba(0,0,0,0.2); }
         
         #appWrap { display:none; height:100%; position: relative; }
         .sidebar { width:260px; background:#fff; display:flex; flex-direction:column; border-right:1px solid #ddd; transition: 0.3s; z-index: 990; }
-        .content { flex:1; padding:20px; overflow-y:auto; background: var(--bg); -webkit-overflow-scrolling: touch; }
+        .content { flex:1; padding:20px; overflow-y:auto; background: var(--bg); }
         
         .main-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: white; border-bottom: 1px solid #eee; margin-bottom: 20px; border-radius: 10px; }
-        .school-name { font-weight: bold; font-size: 16px; color: var(--pri); text-transform: uppercase; }
+        .mobile-header { display: none; background: var(--pri); color: white; padding: 15px; font-weight: bold; justify-content: space-between; align-items: center; z-index: 1000; }
+        .menu-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
 
         @media (max-width: 768px) {
             .mobile-header { display: flex; }
             .main-header { display: none; } 
             #appWrap { flex-direction: column; }
-            .sidebar { position: absolute; top: 0; left: -260px; height: 100%; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+            .sidebar { position: absolute; top: 0; left: -260px; height: 100%; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 9999; }
             .sidebar.open { left: 0; }
             .content { padding: 15px; }
             .legal-paper { padding: 20px !important; font-size: 11pt !important; }
-            .legal-title { font-size: 13pt !important; }
         }
+        #overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index: 9998; display:none; }
 
-        .user-panel { padding:20px; background:linear-gradient(135deg, var(--pri), var(--sec)); color:white; display:flex; align-items:center; gap:15px; }
+        .user-panel { padding:20px; background:linear-gradient(135deg, var(--pri), var(--sec)); color:white; display:flex; align-items:center; gap:15px; position:relative; overflow:hidden; }
+        .bg-cover { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; opacity: 0.3; z-index: 0; }
+        .avatar-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid white; background:#ccc; display:flex; align-items:center; justify-content:center; z-index:1; position:relative; }
+        .user-info { z-index: 1; position:relative; }
+        
         .menu-cat { font-size:11px; font-weight:bold; color:#888; text-transform:uppercase; margin:15px 0 5px 10px; }
         .menu-item { padding:12px 15px; border-radius:8px; cursor:pointer; display:flex; gap:12px; align-items:center; color:#555; font-weight:600; transition:0.2s; }
         .menu-item:hover, .menu-item.active { background:#eef2ff; color:var(--pri); }
-        .card { background:white; border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:0 2px 10px rgba(0,0,0,0.03); position: relative; overflow-x: auto; }
-        input, select, textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:10px; outline:none; box-sizing:border-box; }
         
-        /* BUTTON STYLES WITH DISABLED STATE */
+        .card { background:white; border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:0 2px 10px rgba(0,0,0,0.03); }
+        input, select, textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:10px; outline:none; box-sizing:border-box; font-family: inherit; }
+        
         .btn { background:var(--pri); color:white; padding:10px 20px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; transition:0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .btn:hover { opacity: 0.9; }
-        .btn:disabled { background: #ccc !important; cursor: not-allowed; transform: none !important; opacity: 0.7; }
+        .btn:disabled { background: #ccc !important; cursor: not-allowed; opacity: 0.8; }
         .btn-sm { padding: 5px 10px; font-size: 12px; }
         .btn-warning { background: #f39c12; }
         .btn-green { background: #00b894; }
+        .btn-blue { background: #0984e3; }
         
+        .table-wrap { overflow-x: auto; }
         table { width:100%; border-collapse:collapse; margin-top:10px; min-width: 600px; }
-        th { text-align:left; color:#777; font-size:12px; text-transform:uppercase; padding:10px; border-bottom:2px solid #eee; background: #f8f9fa; text-align: center; }
-        td { padding:10px; border-bottom:1px solid #eee; vertical-align:middle; font-size: 13px; text-align: center; }
-        
-        /* LEGAL PAPER */
-        .legal-paper { background: #fff; padding: 40px 50px; border: 1px solid #ccc; font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.5; margin: 0 auto; max-width: 800px; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); }
-        .legal-header { text-align: center; margin-bottom: 20px; }
-        .legal-nation { font-weight: bold; text-transform: uppercase; }
-        .legal-motto { font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding-bottom: 5px; }
-        .legal-title { text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16pt; margin: 30px 0; }
-        .legal-input { border: none; border-bottom: 1px dotted #000; outline: none; width: auto; background: transparent; font-family: inherit; font-size: inherit; }
-        .date-input { font-family: inherit; font-size: inherit; border: 1px solid #ccc; border-radius: 4px; padding: 2px 5px; background: #fffbe6; cursor: pointer; }
+        th { text-align:left; color:#777; font-size:12px; text-transform:uppercase; padding:10px; border-bottom:2px solid #eee; background: #f8f9fa; text-align: center;}
+        td { padding:10px; border-bottom:1px solid #eee; vertical-align:middle; font-size: 13px; text-align: center;}
         .badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:bold; color:white; display: inline-block;}
         .bg-ok { background:#00b894; } .bg-wait { background:#fdcb6e; color:#333; } .bg-no { background:#ff7675; }
 
-        #replyModal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000; }
-        .reply-box { background: white; width: 90%; max-width: 500px; border-radius: 15px; padding: 25px; position: relative; }
-        #slashMenu { position: absolute; bottom: 85px; left: 25px; width: 250px; background: white; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; z-index: 10001; }
-        .slash-item { padding: 12px 15px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #f9f9f9; }
-        .slash-item:hover { background: #f0f2ff; color: var(--pri); }
-
-        .tkb-input { width: 100%; border: none; text-align: center; background: transparent; font-size: 13px; padding: 5px; }
-        .tkb-input:focus { background: #eef2ff; outline: 1px solid var(--pri); border-radius: 4px; }
-        .flex-control { display:flex; gap:10px; margin-bottom:15px; align-items:center; flex-wrap: wrap; }
+        .legal-paper { background: #fff; padding: 40px 50px; border: 1px solid #ccc; font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.5; margin: 0 auto; max-width: 800px; box-shadow: 5px 5px 15px rgba(0,0,0,0.05); }
+        .legal-header { text-align: center; margin-bottom: 20px; }
+        .legal-title { text-align: center; font-weight: bold; text-transform: uppercase; font-size: 16pt; margin: 30px 0; }
+        .legal-input { border: none; border-bottom: 1px dotted #000; outline: none; width: auto; background: transparent; font-family: inherit; font-size: inherit; }
+        
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 10000; padding:15px; box-sizing:border-box;}
+        .modal-box { background: white; width: 100%; max-width: 600px; border-radius: 15px; padding: 25px; position: relative; max-height:90vh; overflow-y:auto;}
+        
+        /* Chuyên biệt cho module Bài tập */
+        .hw-item { border: 1px solid #eee; border-left: 4px solid var(--pri); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .hw-title { font-size: 16px; font-weight: bold; color: var(--pri); margin-bottom: 5px; }
+        .hw-meta { font-size: 12px; color: #666; margin-bottom: 10px; display:flex; gap:15px; flex-wrap:wrap;}
+        .hw-desc { font-size: 14px; background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+        .text-danger { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="loading" style="display:none">
+    <div id="loading">
         <div class="spinner"></div>
-        <p style="margin-top:15px; font-weight:bold; color:var(--pri); font-size:16px" id="loadingText">Đang xử lý dữ liệu...</p>
+        <p style="margin-top:15px; font-weight:bold; color:var(--pri); font-size:16px" id="loadingText">Đang tải dữ liệu hệ thống...</p>
     </div>
 
     <div id="loginWrap">
         <div class="login-box">
-            <h2 style="color:var(--pri); margin-bottom:5px" id="lbl_loginClass">LỚP 8B</h2>
-            <p style="color:#555; font-weight:bold; font-size:12px; margin-bottom:20px; text-transform:uppercase" id="lbl_loginSchool">Trường THCS Nguyễn Viết Xuân</p>
-            <input id="user" placeholder="Tên đăng nhập">
+            <h2 style="color:var(--pri); margin-bottom:5px" id="lbl_loginClass">...</h2>
+            <p style="color:#555; font-weight:bold; font-size:12px; margin-bottom:20px; text-transform:uppercase" id="lbl_loginSchool">HỆ THỐNG QUẢN LÝ</p>
+            <input id="user" placeholder="Tên đăng nhập (VD: m.an)">
             <input id="pass" type="password" placeholder="Mật khẩu">
-            <button class="btn" style="width:100%" onclick="login()" id="btnLogin">Đăng Nhập</button>
+            <button class="btn" style="width:100%" onclick="App.login()" id="btnLogin">Đăng Nhập</button>
         </div>
     </div>
 
     <div class="mobile-header">
-        <button class="menu-btn" onclick="toggleMenu()">☰</button>
-        <span id="lbl_mobileTitle">LỚP 8B</span>
+        <button class="menu-btn" onclick="UI.toggleMenu()"><i class="fa fa-bars"></i></button>
+        <span id="lbl_mobileTitle">HỆ THỐNG QUẢN LÝ</span>
         <div style="width:20px"></div>
     </div>
 
     <div id="appWrap">
-        <div id="overlay" onclick="toggleMenu()"></div>
+        <div id="overlay" onclick="UI.toggleMenu()"></div>
+        
         <div class="sidebar" id="sidebar">
-            <div class="user-panel">
-                <div style="width:45px; height:45px; background:rgba(255,255,255,0.2); border-radius:50%; display:flex; align-items:center; justify-content:center"><i class="fa fa-user"></i></div>
-                <div><div style="font-weight:bold" id="uName">User</div><small id="uRole">Role</small></div>
-            </div>
+            <div class="user-panel" id="userPanel">
+                </div>
             <div class="menu-scroll" id="menuArea" style="flex:1; overflow-y:auto; padding:10px;"></div>
             <div style="padding:15px; border-top:1px solid #eee">
-                <button class="btn btn-green" onclick="syncData()" style="width:100%; margin-bottom:10px;" id="btnSync"><i class="fa fa-sync"></i> Đồng bộ</button>
+                <button class="btn btn-green" onclick="Network.syncData()" style="width:100%; margin-bottom:10px;" id="btnSync"><i class="fa fa-sync"></i> Đồng bộ dữ liệu</button>
                 <button onclick="location.reload()" class="btn" style="width:100%; background:#fff; color:#ff7675; border:1px solid #ff7675"><i class="fa fa-power-off"></i> Đăng xuất</button>
             </div>
         </div>
+
         <div class="content">
             <div class="main-header">
-                <div class="school-name"> <i class="fa fa-school"></i> <span id="lbl_schoolName">TRƯỜNG THCS NGUYỄN VIẾT XUÂN</span> - <span id="lbl_className">LỚP 8B</span></div>
-                <div style="font-size:13px; color:#666">Năm học: <span id="lbl_year">2025 - 2026</span></div>
+                <div class="school-name"> <i class="fa fa-school"></i> <span id="lbl_schoolName">...</span> - <span id="lbl_className">...</span></div>
+                <div style="font-size:13px; color:#666">Năm học: <span id="lbl_year">...</span></div>
             </div>
             <div id="mainContent"></div>
         </div>
     </div>
 
-    <div id="replyModal">
-        <div class="reply-box">
+    <div id="replyModal" class="modal">
+        <div class="modal-box" style="max-width:500px">
             <h3 style="margin-top:0; color:var(--pri)">💬 Phản Hồi Đơn</h3>
-            <div style="margin-bottom: 15px; font-weight: bold;">Trạng thái: <span id="statusPreview" style="background:#eee; padding:3px 8px; border-radius:5px">Chưa chọn</span></div>
-            <textarea id="replyTxt" style="width:100%; height:100px; padding:15px; border:2px solid #e0e0e0; border-radius:10px; resize:none" placeholder="Gõ dấu / để chọn lệnh nhanh..."></textarea>
-            <div id="slashMenu">
-                <div class="slash-item" onclick="selectSlash('Đã duyệt', 'Đồng ý')"><i class="fa fa-check-circle" style="color:#00b894"></i> <b>/dongy</b></div>
-                <div class="slash-item" onclick="selectSlash('Hủy', 'Không đồng ý')"><i class="fa fa-times-circle" style="color:#ff7675"></i> <b>/khong</b></div>
+            <div style="margin-bottom: 15px; font-weight: bold;">Trạng thái: <span id="statusPreview" class="badge bg-wait">Chưa chọn</span></div>
+            <textarea id="replyTxt" style="height:80px;" placeholder="Nhập nội dung..."></textarea>
+            <div style="display:flex; gap:10px; margin-bottom:15px">
+                <button class="btn btn-sm btn-green" onclick="Features.selectStatus('Đã duyệt')">Sẽ Duyệt</button>
+                <button class="btn btn-sm btn-warning" onclick="Features.selectStatus('Hủy')">Từ Chối</button>
             </div>
-            <div style="display:flex; gap:10px; margin-top:20px">
-                <button class="btn" style="background:#ddd; color:#333" onclick="document.getElementById('replyModal').style.display='none'">Đóng</button>
-                <button class="btn" id="btnReplySubmit" onclick="submitReplyFinal()">Gửi Phản Hồi</button>
+            <div style="display:flex; gap:10px;">
+                <button class="btn" style="background:#ddd; color:#333; flex:1" onclick="document.getElementById('replyModal').style.display='none'">Đóng</button>
+                <button class="btn" id="btnReplySubmit" style="flex:1" onclick="Features.submitReplyFinal()">Gửi Phản Hồi</button>
             </div>
         </div>
     </div>
 
+    <div id="createHwModal" class="modal">
+        <div class="modal-box">
+            <h3 style="margin-top:0; color:var(--pri)">📝 Giao Bài Tập Mới</h3>
+            <label>Tiêu đề bài tập:</label>
+            <input type="text" id="hwTitle" placeholder="VD: Làm bài tập Toán trang 15...">
+            <label>Hướng dẫn chi tiết:</label>
+            <textarea id="hwDesc" style="height:80px;" placeholder="Các em nhớ làm cẩn thận..."></textarea>
+            <label>Hạn nộp (Deadline):</label>
+            <input type="datetime-local" id="hwDeadline">
+            <label>Link đính kèm (G.Drive, Youtube...) - Không bắt buộc:</label>
+            <input type="url" id="hwLink" placeholder="https://...">
+            
+            <div style="display:flex; gap:10px; margin-top:20px">
+                <button class="btn" style="background:#ddd; color:#333; flex:1" onclick="document.getElementById('createHwModal').style.display='none'">Hủy</button>
+                <button class="btn" id="btnCreateHW" style="flex:1" onclick="Features.submitNewHW()">Giao Bài Ngay</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewHwModal" class="modal">
+        <div class="modal-box" id="viewHwContent">
+            </div>
+    </div>
+
     <script>
-        // --- 1. CONFIG ---
-        const API_URL = "https://script.google.com/macros/s/AKfycbz5nIFpRMyvaDup5bwzRigkw7zr-n99mppGLY-u7QjLoZb_nv1GOErafeJAoZpU5jpn/exec"; 
-        const WH_PUBLIC = "https://discord.com/api/webhooks/1456305070181449789/gySnBocRkplcH8UrQvWpnDkg_8472oeOUFCjgOh23NkaGKbMFd7_crtncR5CF44D9lk7?wait=true";
-        const WH_PRIVATE = "https://discord.com/api/webhooks/1456659542699151598/j0LjBOW3wUnNN0p7lWeL5kvbfC4iITGuw5tZ47AWzVluPnsom1qrGGrKMRg3F1cIRRrY?wait=true";
+        /* ==========================================================================
+           PHẦN 1: CẤU HÌNH API & DISCORD
+           ========================================================================== */
+        const CONFIG = {
+            // 👇👇👇 DÁN LINK CỦA BẠN VÀO ĐÂY 👇👇👇
+            API_URL: "https://script.google.com/macros/s/AKfycbz5nIFpRMyvaDup5bwzRigkw7zr-n99mppGLY-u7QjLoZb_nv1GOErafeJAoZpU5jpn/exec", 
+            WH_PUBLIC: "https://discord.com/api/webhooks/1456305070181449789/gySnBocRkplcH8UrQvWpnDkg_8472oeOUFCjgOh23NkaGKbMFd7_crtncR5CF44D9lk7?wait=true",
+            WH_PRIVATE: "https://discord.com/api/webhooks/1456659542699151598/j0LjBOW3wUnNN0p7lWeL5kvbfC4iITGuw5tZ47AWzVluPnsom1qrGGrKMRg3F1cIRRrY?wait=true"
+        };
 
-        // --- UI HELPERS ---
-        function showLoading(text="Đang xử lý...") {
-            document.getElementById('loadingText').innerText = text;
-            document.getElementById('loading').style.display = 'flex';
-        }
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-        }
-        function toggleMenu() {
-            const sb = document.getElementById('sidebar');
-            const ov = document.getElementById('overlay');
-            sb.classList.toggle('open');
-            ov.style.display = sb.classList.contains('open') ? 'block' : 'none';
-        }
+        const RAW_STUDENTS = [
+            'Bùi Vũ Minh An', 'Trương Thị Diệu Anh', 'Lương Gia Bảo', 'Ê Ban Any Tùng', 
+            'Nguyễn Cao Trường Hải', 'Đỗ Ngọc Hân', 'Đinh Thị Bích Hiền', 'Lê Văn Hiếu', 
+            'Huỳnh Nguyễn Minh Hoàng', 'Lê Ngọc Hoàng', 'Dương Quốc Khải', 'Nguyễn Ngọc Thiên Kim', 
+            'Huỳnh Cao Nhật Lâm', 'Nguyễn Quang Long', 'TRIỆU MẪN', 'Tăng Hữu Nam', 
+            'Nguyễn Thùy Bảo Ngân', 'Nguyễn Trần Ngọc Ngân', 'Nguyễn Hoàng Bảo Ngọc', 
+            'Phạm Minh Phước', 'Lê Hoàng Quân', 'Nguyễn Đăng Quân', 'Trần Quốc Quân', 
+            'Nguyễn Thục Quyên', 'Tống Thanh Thanh', 'Lê Văn Thảo', 'Trần Bảo Thắng', 
+            'Trần Thắng', 'Lê Trần Phúc Thiên', 'Lê Thế Thịnh', 'Ngô Nguyễn Bảo Thịnh', 
+            'Lương Nguyễn Anh Thư', 'Nguyễn Anh Thư', 'Trịnh Nguyễn Minh Thư', 'Trần Hoài Thương', 
+            'Nguyễn Ngọc Khánh Thy', 'Đỗ Phạm Huyền Trân', 'Trần Thị Bảo Trân', 'Hoàng Thủy Trúc', 
+            'Nguyễn Huỳnh Như Trúc', 'Phạm Thanh Trung', 'Võ Hoàng Thụy Vân'
+        ];
 
-        // --- 2. DATA ---
-        const rawStudents = ['Bùi Vũ Minh An','Trương Thị Diệu Anh','Lương Gia Bảo','Ê Ban Any Tùng','Nguyễn Cao Trường Hải','Đỗ Ngọc Hân','Đinh Thị Bích Hiền','Lê Văn Hiếu','Huỳnh Nguyễn Minh Hoàng','Lê Ngọc Hoàng','Dương Quốc Khải','Nguyễn Ngọc Thiên Kim','Huỳnh Cao Nhật Lâm','Nguyễn Quang Long','TRIỆU MẪN','Tăng Hữu Nam','Nguyễn Thùy Bảo Ngân','Nguyễn Trần Ngọc Ngân','Nguyễn Hoàng Bảo Ngọc','Phạm Minh Phước','Lê Hoàng Quân','Nguyễn Đăng Quân','Trần Quốc Quân','Nguyễn Thục Quyên','Tống Thanh Thanh','Lê Văn Thảo','Trần Bảo Thắng','Trần Thắng','Lê Trần Phúc Thiên','Lê Thế Thịnh','Ngô Nguyễn Bảo Thịnh','Lương Nguyễn Anh Thư','Nguyễn Anh Thư','Trịnh Nguyễn Minh Thư','Trần Hoài Thương','Nguyễn Ngọc Khánh Thy','Đỗ Phạm Huyền Trân','Trần Thị Bảo Trân','Hoàng Thủy Trúc','Nguyễn Huỳnh Như Trúc','Phạm Thanh Trung','Võ Hoàng Thụy Vân'];
-        
-        function genId(name) { 
-            let str = name.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a").replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e").replace(/ì|í|ị|ỉ|ĩ/g,"i").replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o").replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u").replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y").replace(/đ/g,"d");
-            let clean = str.toLowerCase().trim().split(/\s+/); 
-            if(clean.length<2) return clean[0]; 
-            return clean[clean.length-2].charAt(0) + '.' + clean[clean.length-1]; 
-        }
+        const USERS_INIT = [
+            { u: 'admin', p: 'dotac', n: 'Admin Hệ Thống', r: 'admin', c: 'ALL' }, 
+            { u: 'gv', p: '123', n: 'Giáo Viên Chủ Nhiệm', r: 'teacher', c: 'Main' }
+        ];
 
-        // Mật khẩu Admin: dotac | GV: 123
-        const usersDB = [{u:'admin',p:'dotac',n:'Admin Hệ Thống',r:'admin',c:'ALL'}, {u:'gv',p:'123',n:'GVCN',r:'teacher',c:'Main'}];
-        const studentList = []; const used = {};
-        rawStudents.forEach(n => {
-            let base = genId(n); let id = used[base] ? base + used[base] : base;
-            if(used[base]) used[base]++; else used[base]=1;
-            usersDB.push({u:id, p:'123', n:n, r:'student', c:'Main'});
-            studentList.push({id:id, name:n});
-        });
+        let DB = { 
+            reqs: [], weekly: [], users: [], schedule: {}, 
+            hw: [], // Lưu trữ bài tập
+            avatars: {}, // Lưu trữ link ảnh đại diện
+            weekList: ["Tuần 1"], scheduleList: ["Học Kỳ 1"],
+            config: { className: "LỚP 8B", schoolName: "TRƯỜNG THCS NGUYỄN VIẾT XUÂN", year: "2025 - 2026" } 
+        };
+        let CURRENT_USER = null;
+        const STUDENT_LIST = [];
 
-        const defaultConfig = { className: "Cô Hà", schoolName: "Lớp 8B", year: "2025 - 2026" };
-        let DB = { reqs: [], weekly: [], users: [], config: defaultConfig, schedule: {}, weekList: ["Tuần 1"], scheduleList: ["Học Kỳ 1"] };
-        let curr = null;
+        const Utils = {
+            genId: (name) => { 
+                let str = name.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a").replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e").replace(/ì|í|ị|ỉ|ĩ/g,"i").replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o").replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u").replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y").replace(/đ/g,"d");
+                let clean = str.toLowerCase().trim().split(/\s+/); 
+                if(clean.length < 2) return clean[0]; 
+                return clean[clean.length-2].charAt(0) + '.' + clean[clean.length-1]; 
+            },
+            initUsers: () => {
+                let used = {};
+                RAW_STUDENTS.forEach(n => {
+                    let base = Utils.genId(n); 
+                    let id = used[base] ? base + used[base] : base;
+                    if(used[base]) used[base]++; else used[base] = 1;
+                    USERS_INIT.push({ u: id, p: '123', n: n, r: 'student', c: 'Main' });
+                    STUDENT_LIST.push({ id: id, name: n });
+                });
+            },
+            formatDate: (isoString) => {
+                if(!isoString) return "";
+                const d = new Date(isoString);
+                return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} - ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+            }
+        };
 
-        // --- 3. ONLINE SYNC ---
-        window.onload = function() { hideLoading(); } // Hide initial spinner
-
-        async function loadOnlineData() {
-            try {
-                const res = await fetch(API_URL);
-                const data = await res.json();
-                if(!data || data.init || !data.users || data.users.length === 0) {
-                    DB.users = usersDB; DB.config = defaultConfig; DB.weekList = ["Tuần 1"]; DB.scheduleList = ["Học Kỳ 1"]; 
-                    await saveOnlineData();
-                } else {
-                    DB = data;
-                    if(!DB.config) DB.config = defaultConfig;
-                    if(!DB.weekList) DB.weekList = ["Tuần 1"];
-                    if(!DB.scheduleList) DB.scheduleList = ["Học Kỳ 1"];
-                    if(!DB.schedule) DB.schedule = {};
+        const UI = {
+            showLoading: (text) => { document.getElementById('loadingText').innerText = text; document.getElementById('loading').style.display = 'flex'; },
+            hideLoading: () => { document.getElementById('loading').style.display = 'none'; },
+            toggleMenu: () => {
+                document.getElementById('sidebar').classList.toggle('open');
+                document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('open') ? 'block' : 'none';
+            },
+            updateConfigText: () => {
+                const c = DB.config;
+                if(!c) return;
+                document.getElementById('lbl_loginClass').innerText = c.className;
+                document.getElementById('lbl_loginSchool').innerText = c.schoolName;
+                document.getElementById('lbl_mobileTitle').innerText = c.className;
+                document.getElementById('lbl_schoolName').innerText = c.schoolName;
+                document.getElementById('lbl_className').innerText = c.className;
+                document.getElementById('lbl_year').innerText = c.year;
+                document.getElementById('pageTitle').innerText = "Quản lý " + c.className;
+                
+                if(CURRENT_USER) {
+                    const avatarUrl = DB.avatars[CURRENT_USER.u] || 'https://i.imgur.com/6VBx3io.png';
+                    document.getElementById('userPanel').innerHTML = `
+                        <img src="${avatarUrl}" class="bg-cover">
+                        <div class="avatar-img"><img src="${avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover"></div>
+                        <div class="user-info">
+                            <div style="font-weight:bold; font-size:15px">${CURRENT_USER.n}</div>
+                            <small style="opacity:0.9">${CURRENT_USER.r.toUpperCase()}</small>
+                        </div>`;
                 }
-                renderConfig(); 
-            } catch(e) { console.error("Lỗi tải data", e); }
-        }
-
-        async function saveOnlineData() {
-            try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(DB) }); } 
-            catch(e) { console.error(e); }
-        }
-
-        function renderConfig() {
-            if(DB.config) {
-                document.getElementById('lbl_loginClass').innerText = DB.config.className;
-                document.getElementById('lbl_loginSchool').innerText = DB.config.schoolName;
-                document.getElementById('lbl_mobileTitle').innerText = DB.config.className;
-                document.getElementById('lbl_schoolName').innerText = DB.config.schoolName;
-                document.getElementById('lbl_className').innerText = DB.config.className;
-                document.getElementById('lbl_year').innerText = DB.config.year;
-                document.title = "Quản lý " + DB.config.className;
             }
-        }
+        };
 
-        async function syncData() { 
-            const btn = document.getElementById('btnSync');
-            btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang tải...';
-            showLoading("Đang đồng bộ dữ liệu từ máy chủ...");
-            await loadOnlineData(); 
-            hideLoading();
-            btn.disabled = false; btn.innerHTML = '<i class="fa fa-sync"></i> Đồng bộ';
-            alert("Đã cập nhật dữ liệu mới nhất!"); 
-        }
-
-        // --- 4. CORE LOGIN ---
-        async function login() {
-            const u = document.getElementById('user').value.toLowerCase().trim();
-            const p = document.getElementById('pass').value;
-            const btn = document.getElementById('btnLogin');
-            
-            btn.disabled = true; btn.innerText = "Đang kiểm tra...";
-            showLoading("Đang tải dữ liệu mới nhất..."); // Chặn màn hình
-            
-            await loadOnlineData(); // Bắt buộc tải mới
-            
-            // Check login
-            let checkList = DB.users;
-            if (!checkList || checkList.length === 0) checkList = usersDB; 
-            const f = checkList.find(x => x.u == u && x.p == p);
-            
-            hideLoading();
-            btn.disabled = false; btn.innerText = "Đăng Nhập";
-
-            if(f) { 
-                curr = f;
-                document.getElementById('loginWrap').style.display='none'; 
-                document.getElementById('appWrap').style.display='flex'; 
-                document.getElementById('uName').innerText = f.n; 
-                document.getElementById('uRole').innerText = f.r.toUpperCase(); 
-                renderMenu(); nav('rules'); 
-            } else {
-                alert('Sai tên đăng nhập hoặc mật khẩu!');
+        const Network = {
+            loadData: async () => {
+                try {
+                    const res = await fetch(CONFIG.API_URL);
+                    const data = await res.json();
+                    
+                    if (!data || data.init || !data.users || data.users.length === 0) {
+                        DB.users = USERS_INIT;
+                        await Network.saveData();
+                    } else {
+                        DB = data;
+                        if(!DB.config) DB.config = { className: "Lớp", schoolName: "Trường", year: "2025" };
+                        if(!DB.weekList) DB.weekList = ["Tuần 1"];
+                        if(!DB.scheduleList) DB.scheduleList = ["Học Kỳ 1"];
+                        if(!DB.schedule) DB.schedule = {};
+                        if(!DB.hw) DB.hw = []; // Init Homework
+                        if(!DB.avatars) DB.avatars = {}; // Init Avatars
+                    }
+                    UI.updateConfigText();
+                } catch(e) { console.error("Lỗi", e); }
+            },
+            saveData: async () => {
+                try { await fetch(CONFIG.API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(DB) }); } 
+                catch(e) { console.error(e); }
+            },
+            syncData: async () => {
+                const btn = document.getElementById('btnSync'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+                UI.showLoading("Đang đồng bộ...");
+                await Network.loadData();
+                UI.hideLoading(); btn.disabled = false; btn.innerHTML = '<i class="fa fa-sync"></i> Đồng bộ dữ liệu';
+                const activeItem = document.querySelector('.menu-item.active'); if(activeItem) activeItem.click();
+            },
+            sendToDiscord: async (isSecure, title, description) => {
+                const url = isSecure ? CONFIG.WH_PRIVATE : CONFIG.WH_PUBLIC;
+                const color = isSecure ? 15158332 : 3066993; 
+                try {
+                    await fetch(url, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: "Cô Hà", // ĐÃ ĐỔI TÊN BOT THÀNH CÔ HÀ
+                            embeds: [{ title: title, description: description, color: color }]
+                        })
+                    });
+                } catch(e) {}
             }
-        }
+        };
 
-        function renderMenu() {
-            let h = `<div class="menu-cat">Thông tin chung</div>
-                     <div class="menu-item" onclick="nav('rules')"><i class="fa fa-book"></i> Nội quy</div>
-                     <div class="menu-item" onclick="nav('schedule')"><i class="fa fa-calendar-alt"></i> Thời khóa biểu</div>`;
-            
-            if(curr.r === 'student') h += `<div class="menu-cat">Cá nhân</div><div class="menu-item" onclick="nav('form')"><i class="fa fa-pen"></i> Soạn Văn Bản</div><div class="menu-item" onclick="nav('mailbox')"><i class="fa fa-envelope"></i> Hộp Thư</div><div class="menu-item" onclick="nav('my_rank')"><i class="fa fa-star"></i> Điểm Thi Đua</div><div class="menu-item" onclick="nav('my_pass')"><i class="fa fa-key"></i> Đổi Mật Khẩu</div>`;
-            else if(curr.r === 'teacher') h += `<div class="menu-cat">Quản lý lớp</div><div class="menu-item" onclick="nav('approve')"><i class="fa fa-check-circle"></i> Duyệt Đơn</div><div class="menu-item" onclick="nav('grading')"><i class="fa fa-edit"></i> Chấm Điểm Tuần</div><div class="menu-item" onclick="nav('class_list')"><i class="fa fa-list"></i> Xem DS Lớp</div><div class="menu-item" onclick="nav('accounts')"><i class="fa fa-users-cog"></i> Quản lý Tài khoản</div><div class="menu-item" onclick="nav('my_pass')"><i class="fa fa-key"></i> Đổi Mật Khẩu</div>`;
-            else h += `<div class="menu-cat">Quản trị</div><div class="menu-item" onclick="nav('settings')"><i class="fa fa-cog"></i> Cài đặt Hệ thống</div><div class="menu-item" onclick="nav('accounts')"><i class="fa fa-users-cog"></i> Quản lý Tài khoản</div><div class="menu-item" onclick="nav('approve')"><i class="fa fa-check-double"></i> Xem tất cả đơn</div><div class="menu-item" onclick="nav('my_pass')"><i class="fa fa-key"></i> Đổi Mật Khẩu</div>`;
-            document.getElementById('menuArea').innerHTML = h;
-        }
+        const App = {
+            init: async () => {
+                Utils.initUsers(); UI.showLoading("Đang nạp hệ thống..."); await Network.loadData(); UI.hideLoading();
+            },
+            login: async () => {
+                const u = document.getElementById('user').value.toLowerCase().trim(); const p = document.getElementById('pass').value;
+                const btn = document.getElementById('btnLogin'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>'; UI.showLoading("Đang xác thực...");
+                await Network.loadData(); 
+                let checkList = (DB.users && DB.users.length > 0) ? DB.users : USERS_INIT;
+                const f = checkList.find(x => x.u === u && x.p === p);
+                UI.hideLoading(); btn.disabled = false; btn.innerText = "Đăng Nhập";
 
-        function nav(p) {
-            const c = document.getElementById('mainContent'); c.innerHTML = '';
-            document.querySelectorAll('.menu-item').forEach(e=>e.classList.remove('active'));
-            if(event && event.currentTarget.classList) event.currentTarget.classList.add('active');
-            if(window.innerWidth <= 768 && document.getElementById('sidebar').classList.contains('open')) toggleMenu();
-
-            if(p === 'rules') c.innerHTML = `<div style="display:flex; gap:20px; flex-wrap:wrap;"><div class="card" style="flex:1; min-width:280px"><h3>🏛️ NỘI QUY ${DB.config.schoolName}</h3><ul><li>Đi học đúng giờ.</li><li>Lễ phép với thầy cô.</li><li>Giữ gìn vệ sinh chung.</li></ul></div><div class="card" style="flex:1; min-width:280px"><h3>🏫 NỘI QUY ${DB.config.className}</h3><ul><li>Truy bài 15 phút đầu giờ.</li><li>Không dùng điện thoại trong giờ.</li><li>Đoàn kết, giúp đỡ bạn bè.</li></ul></div></div>`;
-            
-            else if(p === 'schedule') {
-                const canEdit = (curr.r === 'teacher' || curr.r === 'admin');
-                let selectHtml = `<select id="tkbSelect" onchange="loadScheduleView()" style="flex:1">`;
-                DB.scheduleList.forEach(s => { selectHtml += `<option value="${s}">${s}</option>`; }); selectHtml += `</select>`;
-                let html = `<div class="flex-control"><h2>📅 Thời Khóa Biểu</h2>${selectHtml}${canEdit ? `<button class="btn btn-green" onclick="addTKBVersion()">+ Thêm</button>` : ''}</div><div class="card" id="tkbContainer"><p>Đang tải...</p></div>${canEdit ? `<button class="btn" style="margin-top:10px" onclick="saveSchedule()">Lưu TKB này</button>` : ''}`;
-                c.innerHTML = html; loadScheduleView();
+                if (f) {
+                    CURRENT_USER = f; document.getElementById('loginWrap').style.display = 'none'; document.getElementById('appWrap').style.display = 'flex';
+                    UI.updateConfigText(); Router.renderMenu(); Router.nav('rules');
+                } else { alert('Sai thông tin!'); }
             }
-            
-            else if(p === 'form') { c.innerHTML = `<div class="card"><div style="display:flex; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;"><h2>📝 Soạn Thảo</h2><select id="fType" onchange="renderForm()" style="width:200px"><option value="nghi">Đơn xin nghỉ học</option><option value="tuongtrinh">Bản tường trình</option><option value="camket">Bản cam kết</option></select></div><div id="paperArea" style="background:#ccc; padding:20px;"></div><button class="btn" id="btnSendForm" style="margin-top:20px; width:100%" onclick="sendForm()">GỬI ĐƠN</button></div>`; renderForm(); }
-            
-            else if(p === 'mailbox') { const list = DB.reqs.filter(r => r.sid === curr.u).reverse(); c.innerHTML = `<h2>📬 Hộp Thư</h2><div class="card">${list.length===0?'<p>Trống</p>':''}${list.map(r => `<div style="border-bottom:1px solid #eee; padding:15px 0"><div style="display:flex; justify-content:space-between"><b style="color:var(--pri)">${r.type}</b><span class="badge ${r.st==='Đã duyệt'?'bg-ok':(r.st==='Hủy'?'bg-no':'bg-wait')}">${r.st}</span></div><div style="font-size:13px; color:#555">Ngày gửi: ${r.date}</div><div style="background:#f9f9f9; padding:10px; margin-top:10px"><b>💬 Lời nhắn GV:</b> ${r.reply || '(Chưa có)'}</div></div>`).join('')}</div>`; }
-            
-            else if(p === 'approve') { const list = DB.reqs.filter(r => curr.r === 'admin' || r.cls === curr.c).reverse(); c.innerHTML = `<h2>✅ Duyệt Đơn</h2><div class="card"><div style="overflow-x:auto"><table><thead><tr><th>HS</th><th>Loại</th><th>Ngày/Nội dung</th><th>Trạng thái</th><th>Xử lý</th></tr></thead><tbody>${list.map(r => `<tr><td><b>${r.sname}</b><br><small>${r.sid}</small></td><td>${r.secure?'🔒 ':''}${r.type}</td><td>${r.date}<br>${r.txt}</td><td><span class="badge ${r.st==='Đã duyệt'?'bg-ok':(r.st==='Hủy'?'bg-no':'bg-wait')}">${r.st}</span></td><td>${r.st==='Chờ' && curr.r !== 'admin' ?`<button class="btn" style="padding:5px 10px; font-size:11px" onclick="openReply('${r.id}')">Phản hồi</button>`:(r.st==='Chờ'?'Đang chờ':'Đã xử lý')}</td></tr>`).join('')}</tbody></table></div></div>`; }
-            
-            else if(p === 'grading') { let selectHtml = `<select id="wSelect" onchange="loadWeekData()" style="flex:1">`; DB.weekList.forEach(w => { selectHtml += `<option value="${w}">${w}</option>`; }); selectHtml += `</select>`; c.innerHTML = `<div class="flex-control"><h2>✍️ Chấm Điểm</h2>${selectHtml}<button class="btn btn-green" onclick="addWeekVersion()">+ Thêm Tuần</button></div><div class="card"><div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Học sinh</th><th>Điểm</th><th>Xếp loại</th><th>Ghi chú</th></tr></thead><tbody id="gradeTable"></tbody></table></div></div><button class="btn" style="margin-top:20px" onclick="saveGrades()">LƯU KẾT QUẢ</button>`; loadWeekData(); }
-            
-            else if(p === 'my_rank') { const myW = DB.weekly.filter(w => w.sid === curr.u); c.innerHTML = `<h2>🏆 Điểm Thi Đua</h2><div class="card"><div style="overflow-x:auto"><table><thead><tr><th>Tuần</th><th>Điểm</th><th>Xếp loại</th><th>Nhận xét</th></tr></thead><tbody>${myW.map(w => `<tr><td>${w.week}</td><td><b>${w.score}</b></td><td><span class="badge ${w.rank==='Tốt'?'bg-ok':'bg-wait'}">${w.rank}</span></td><td>${w.note}</td></tr>`).join('')}</tbody></table></div></div>`; }
-            
-            else if(p === 'class_list') { c.innerHTML = `<h2>Danh Sách Lớp</h2><div class="card"><div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Họ Tên</th></tr></thead><tbody>${studentList.map(s => `<tr><td>${s.id}</td><td>${s.name}</td></tr>`).join('')}</tbody></table></div></div>`; }
-            
-            else if(p === 'accounts') {
-                const studs = DB.users.filter(u => u.r === 'student');
-                c.innerHTML = `<h2>⚙️ Quản lý Tài khoản (Học sinh)</h2><div class="card"><p style="color:#666; font-size:13px; margin-bottom:15px">GVCN/Admin có thể đổi mật khẩu cho học sinh tại đây.</p><div style="overflow-x:auto"><table><thead><tr><th>User ID</th><th>Họ và Tên</th><th>Mật khẩu</th><th>Thao tác</th></tr></thead><tbody>${studs.map(s => `<tr><td><b>${s.u}</b></td><td>${s.n}</td><td style="font-family:monospace">${s.p}</td><td><button class="btn btn-sm btn-warning" onclick="changePass('${s.u}')">Đổi MK</button></td></tr>`).join('')}</tbody></table></div></div>`;
-            }
-            
-            else if(p === 'my_pass') {
-                c.innerHTML = `<h2>🔑 Đổi Mật Khẩu Cá Nhân</h2><div class="card" style="max-width:400px"><label>Mật khẩu cũ:</label><input type="password" id="oldP"><label>Mật khẩu mới:</label><input type="password" id="newP"><button class="btn" style="margin-top:10px" onclick="selfChangePass()">Cập nhật</button></div>`;
-            }
-            
-            else if(p === 'settings') { c.innerHTML = `<h2>🔧 Cài đặt Hệ Thống</h2><div class="card"><label>Tên Lớp (VD: LỚP 9A):</label><input id="set_class" value="${DB.config.className}"><label>Tên Trường (VD: TRƯỜNG THCS ABC):</label><input id="set_school" value="${DB.config.schoolName}"><label>Niên khóa (VD: 2025 - 2026):</label><input id="set_year" value="${DB.config.year}"><button class="btn" style="margin-top:10px" onclick="saveSettings()">Lưu Cài Đặt</button></div>`; }
-        }
+        };
 
-        // --- 5. LOGIC CHỨC NĂNG ---
-        async function addWeekVersion() { const n = prompt("Nhập tên tuần mới:"); if(n && !DB.weekList.includes(n)) { DB.weekList.push(n); await saveOnlineData(); alert("Đã thêm!"); nav('grading'); } }
-        async function addTKBVersion() { const n = prompt("Nhập tên TKB mới:"); if(n && !DB.scheduleList.includes(n)) { DB.scheduleList.push(n); await saveOnlineData(); alert("Đã thêm!"); nav('schedule'); } }
-        
-        function loadScheduleView() { const ver = document.getElementById('tkbSelect').value; const canEdit = (curr.r === 'teacher' || curr.r === 'admin'); let html = `<div style="overflow-x:auto"><table><thead><tr><th>Tiết</th><th>Thứ 2</th><th>Thứ 3</th><th>Thứ 4</th><th>Thứ 5</th><th>Thứ 6</th><th>Thứ 7</th></tr></thead><tbody>`; for(let i=1; i<=5; i++) { html += `<tr><td style="font-weight:bold">Tiết ${i}</td>`; for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; const val = (DB.schedule && DB.schedule[key]) ? DB.schedule[key] : ''; if(canEdit) html += `<td><input class="tkb-input" id="${key}" value="${val}"></td>`; else html += `<td>${val || '-'}</td>`; } html += `</tr>`; } html += `</tbody></table></div>`; document.getElementById('tkbContainer').innerHTML = html; }
-        async function saveSchedule() { 
-            showLoading("Đang lưu Thời khóa biểu...");
-            const ver = document.getElementById('tkbSelect').value; for(let i=1; i<=5; i++) { for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; DB.schedule[key] = document.getElementById(key).value; } } 
-            await saveOnlineData(); 
-            hideLoading();
-            alert("Đã lưu TKB: " + ver); 
-        }
-
-        async function changePass(uid) { 
-            const newP = prompt("Nhập mật khẩu mới cho " + uid); if(!newP) return; 
-            showLoading("Đang cập nhật mật khẩu...");
-            const u = DB.users.find(x => x.u === uid); if(u) { u.p = newP; await saveOnlineData(); }
-            hideLoading();
-            alert("Đã đổi thành công!"); nav('accounts'); 
-        }
-        
-        async function selfChangePass() { 
-            const oldP = document.getElementById('oldP').value; const newP = document.getElementById('newP').value; 
-            if(oldP !== curr.p) return alert("Mật khẩu cũ không đúng!"); 
-            if(!newP) return alert("Chưa nhập mật khẩu mới!");
-            showLoading("Đang cập nhật...");
-            const idx = DB.users.findIndex(x => x.u === curr.u); if(idx > -1) { DB.users[idx].p = newP; curr.p = newP; await saveOnlineData(); }
-            hideLoading();
-            alert("Đã đổi mật khẩu thành công!"); 
-            document.getElementById('oldP').value = ''; document.getElementById('newP').value = '';
-        }
-        
-        async function saveSettings() { 
-            showLoading("Đang lưu cài đặt...");
-            DB.config.className = document.getElementById('set_class').value; DB.config.schoolName = document.getElementById('set_school').value; DB.config.year = document.getElementById('set_year').value; await saveOnlineData(); renderConfig(); 
-            hideLoading();
-            alert("Đã lưu thông tin!"); 
-        }
-
-        function renderForm() { const t = document.getElementById('fType').value; const a = document.getElementById('paperArea'); const h = `<div class="legal-header"><div class="legal-nation">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class="legal-motto">Độc lập - Tự do - Hạnh phúc</div></div>`; window.updateFooterDate = function(el) { const d = new Date(el.value); if(!isNaN(d.getTime())) { document.getElementById('footerDate').innerText = `Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`; } }; let body = ''; if(t==='nghi') body = `<div class="legal-title">ĐƠN XIN NGHỈ HỌC</div><p>Kính gửi: GVCN ${DB.config.className}</p><p>Em tên: ${curr.n}</p><p>Xin nghỉ từ ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Lý do: <input id="fTxt" class="legal-input" style="width:70%" placeholder="..."></p>`; else if(t==='tuongtrinh') body = `<div class="legal-title">BẢN TƯỜNG TRÌNH</div><p>Kính gửi: Ban Giám Hiệu</p><p>Em tên: ${curr.n}</p><p>Vào ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Nội dung: <input id="fTxt" class="legal-input" style="width:80%"></p>`; else body = `<div class="legal-title">BẢN CAM KẾT</div><p>Kính gửi: GVCN</p><p>Em tên: ${curr.n}</p><p>Ngày vi phạm: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Nội dung cam kết: <input id="fTxt" class="legal-input" style="width:80%"></p>`; a.innerHTML = `<div class="legal-paper">${h}${body}<br><br><div style="text-align:right"><i id="footerDate">Ngày... tháng... năm...</i><br><b>Người làm đơn</b><br><br>${curr.n}</div></div>`; }
-        
-        async function sendForm() { 
-            const txt = document.getElementById('fTxt').value; const dateVal = document.getElementById('datePicker').value; if(!txt || !dateVal) return alert('Nhập đủ thông tin!'); 
-            const d = new Date(dateVal); const fmtDate = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; const tVal = document.getElementById('fType').value; const tText = document.getElementById('fType').options[document.getElementById('fType').selectedIndex].text; const isSecure = tVal !== 'nghi'; 
-            
-            const btn = document.getElementById('btnSendForm');
-            btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang gửi...';
-            
-            DB.reqs.push({ id: Date.now(), sid: curr.u, sname: curr.n, cls: curr.c, type: tText, txt: txt, st: 'Chờ', reply: '', secure: isSecure, date: fmtDate }); 
-            await saveOnlineData(); 
-            
-            const webhookUrl = isSecure ? WH_PRIVATE : WH_PUBLIC; const embedColor = isSecure ? 15158332 : 3066993; const embedTitle = isSecure ? "🔒 VĂN BẢN MẬT" : "📝 ĐƠN XIN NGHỈ"; 
-            try { await fetch(webhookUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ "username": "THỊNH ĐZ BOT", "embeds": [{ "title": embedTitle, "description": `**Học sinh:** ${curr.n}\n**Lớp:** ${DB.config.className}\n**Ngày:** ${fmtDate}\n**Nội dung:** ${txt}`, "color": embedColor }] }) }); } catch(e) {} 
-            
-            btn.disabled = false; btn.innerText = "GỬI ĐƠN";
-            alert('Đã gửi thành công!'); nav('mailbox'); 
-        }
-
-        let currentReplyId = null; let selectedStatus = null;
-        function openReply(id) { currentReplyId = id; selectedStatus = null; document.getElementById('replyModal').style.display = 'flex'; document.getElementById('replyTxt').value = ''; updateStatusPreview(); document.getElementById('slashMenu').style.display = 'none'; }
-        document.getElementById('replyTxt').addEventListener('input', function(e) { const val = e.target.value; const menu = document.getElementById('slashMenu'); menu.style.display = (val.trim() === '/' || val.endsWith(' /') || val.startsWith('/')) ? 'block' : 'none'; });
-        function selectSlash(status, text) { const txtBox = document.getElementById('replyTxt'); selectedStatus = status; let currentVal = txtBox.value.replace(/\/\s*$/, '').replace(/^\/\s*/, ''); txtBox.value = currentVal.trim() === '' ? text + " " : currentVal.trim() + " " + text + " "; document.getElementById('slashMenu').style.display = 'none'; txtBox.focus(); updateStatusPreview(); }
-        function updateStatusPreview() { const el = document.getElementById('statusPreview'); if (!selectedStatus) { el.innerText = "Chưa chọn"; el.style.background = "#eee"; el.style.color = "#555"; } else if (selectedStatus === 'Đã duyệt') { el.innerText = "Duyệt"; el.style.background = "#00b894"; el.style.color = "#fff"; } else { el.innerText = "Hủy"; el.style.background = "#ff7675"; el.style.color = "#fff"; } }
-        
-        async function submitReplyFinal() { 
-            const note = document.getElementById('replyTxt').value; if (!note || !selectedStatus) return alert("Thiếu thông tin!"); 
-            const r = DB.reqs.find(x => x.id == currentReplyId); 
-            if(r) { 
-                const btn = document.getElementById('btnReplySubmit');
-                btn.disabled = true; btn.innerHTML = 'Đang gửi...';
+        const Router = {
+            renderMenu: () => {
+                const role = CURRENT_USER.r;
+                let html = `<div class="menu-cat">Thông tin chung</div>
+                            <div class="menu-item" onclick="Router.nav('rules')"><i class="fa fa-book"></i> Nội quy</div>
+                            <div class="menu-item" onclick="Router.nav('schedule')"><i class="fa fa-calendar-alt"></i> Thời khóa biểu</div>`;
                 
-                r.st = selectedStatus; r.reply = note; await saveOnlineData(); 
-                try { await fetch(r.secure ? WH_PRIVATE : WH_PUBLIC, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ "username": "THỊNH ĐZ BOT", "embeds": [{ "title": selectedStatus==='Đã duyệt'?"✅ ĐÃ DUYỆT":"❌ TỪ CHỐI", "description": `GV đã trả lời.\n💬 **Nội dung:** ${note}\n👤 **Học sinh:** ${r.sname}`, "color": selectedStatus==='Đã duyệt'?3066993:15158332 }] }) }); } catch(e){} 
-                
-                btn.disabled = false; btn.innerText = "Gửi Phản Hồi";
-                document.getElementById('replyModal').style.display='none'; nav('approve'); 
-            } 
-        }
+                if (role === 'student') {
+                    html += `<div class="menu-cat">Học Tập</div>
+                             <div class="menu-item" onclick="Router.nav('homework')"><i class="fa fa-tasks"></i> Bài tập về nhà</div>
+                             <div class="menu-item" onclick="Router.nav('my_rank')"><i class="fa fa-star"></i> Điểm thi đua</div>
+                             <div class="menu-cat">Cá nhân</div>
+                             <div class="menu-item" onclick="Router.nav('form')"><i class="fa fa-pen"></i> Viết đơn / Xin nghỉ</div>
+                             <div class="menu-item" onclick="Router.nav('mailbox')"><i class="fa fa-envelope"></i> Hộp thư đơn từ</div>
+                             <div class="menu-item" onclick="Router.nav('profile')"><i class="fa fa-user-circle"></i> Hồ sơ cá nhân</div>`;
+                } else if (role === 'teacher') {
+                    html += `<div class="menu-cat">Quản lý Học Tập</div>
+                             <div class="menu-item" onclick="Router.nav('hw_manage')"><i class="fa fa-tasks"></i> Giao & Chấm Bài Tập</div>
+                             <div class="menu-item" onclick="Router.nav('grading')"><i class="fa fa-edit"></i> Chấm Điểm Tuần</div>
+                             <div class="menu-cat">Quản lý Khác</div>
+                             <div class="menu-item" onclick="Router.nav('approve')"><i class="fa fa-check-circle"></i> Duyệt Đơn Từ</div>
+                             <div class="menu-item" onclick="Router.nav('class_list')"><i class="fa fa-list"></i> Danh Sách Lớp</div>
+                             <div class="menu-item" onclick="Router.nav('accounts')"><i class="fa fa-users-cog"></i> Cấp MK Học sinh</div>
+                             <div class="menu-item" onclick="Router.nav('profile')"><i class="fa fa-user-circle"></i> Cá nhân</div>`;
+                } else if (role === 'admin') {
+                    html += `<div class="menu-cat">Quản trị Hệ Thống</div>
+                             <div class="menu-item" onclick="Router.nav('settings')"><i class="fa fa-cog"></i> Cài đặt Hệ Thống</div>
+                             <div class="menu-item" onclick="Router.nav('accounts')"><i class="fa fa-users-cog"></i> Quản lý Tài khoản</div>
+                             <div class="menu-item" onclick="Router.nav('approve')"><i class="fa fa-check-double"></i> Xem tất cả Đơn</div>
+                             <div class="menu-item" onclick="Router.nav('profile')"><i class="fa fa-user-circle"></i> Cá nhân</div>`;
+                }
+                document.getElementById('menuArea').innerHTML = html;
+            },
 
-        function loadWeekData() { const w = document.getElementById('wSelect').value; const tb = document.getElementById('gradeTable'); tb.innerHTML = ''; studentList.forEach(s => { const old = DB.weekly.find(x => x.week == w && x.sid == s.id) || {}; tb.innerHTML += `<tr><td><small>${s.id}</small></td><td>${s.name}</td><td><input type="number" id="s_${s.id}" value="${old.score||100}" style="width:60px"></td><td><select id="r_${s.id}" style="width:100px"><option ${old.rank=='Tốt'?'selected':''}>Tốt</option><option ${old.rank=='Khá'?'selected':''}>Khá</option><option ${old.rank=='TB'?'selected':''}>TB</option></select></td><td><input type="text" id="n_${s.id}" value="${old.note||''}" placeholder="..."></td></tr>`; }); }
-        async function saveGrades() { 
-            showLoading("Đang lưu điểm...");
-            const w = document.getElementById('wSelect').value; studentList.forEach(s => { const idx = DB.weekly.findIndex(x => x.week == w && x.sid == s.id); if(idx > -1) DB.weekly.splice(idx, 1); DB.weekly.push({ week: w, sid: s.id, score: document.getElementById(`s_${s.id}`).value, rank: document.getElementById(`r_${s.id}`).value, note: document.getElementById(`n_${s.id}`).value }); }); 
-            await saveOnlineData(); 
-            hideLoading();
-            alert('Đã lưu điểm tuần ' + w); 
-        }
+            nav: (page) => {
+                const c = document.getElementById('mainContent'); c.innerHTML = '';
+                document.querySelectorAll('.menu-item').forEach(e => e.classList.remove('active'));
+                if(event && event.currentTarget.classList) event.currentTarget.classList.add('active');
+                if(window.innerWidth <= 768 && document.getElementById('sidebar').classList.contains('open')) UI.toggleMenu();
+
+                // MODULE BÀI TẬP VỀ NHÀ (HS)
+                if(page === 'homework') {
+                    let hHtml = `<h2>📚 Bài Tập Cần Làm</h2>`;
+                    if(!DB.hw || DB.hw.length === 0) hHtml += `<div class="card">Chưa có bài tập nào.</div>`;
+                    
+                    const now = new Date();
+                    (DB.hw || []).forEach(h => {
+                        const mySub = h.subs ? h.subs.find(x => x.sid === CURRENT_USER.u) : null;
+                        const isOverdue = new Date(h.deadline) < now;
+                        let status = `<span class="badge bg-wait">Chưa nộp</span>`;
+                        if(mySub && mySub.grade) status = `<span class="badge bg-ok">Đã chấm: ${mySub.grade}</span>`;
+                        else if(mySub) status = `<span class="badge btn-blue">Đã nộp</span>`;
+                        else if(isOverdue) status = `<span class="badge bg-no">Quá hạn</span>`;
+
+                        hHtml += `
+                        <div class="card hw-item">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start">
+                                <div class="hw-title">${h.title}</div>
+                                ${status}
+                            </div>
+                            <div class="hw-meta">
+                                <span><i class="fa fa-clock"></i> Hạn nộp: <b class="${isOverdue ? 'text-danger':''}">${Utils.formatDate(h.deadline)}</b></span>
+                                ${h.link ? `<a href="${h.link}" target="_blank" style="color:var(--pri); font-weight:bold"><i class="fa fa-link"></i> Link tài liệu GV</a>` : ''}
+                            </div>
+                            <div class="hw-desc">${h.desc || 'Không có ghi chú thêm.'}</div>
+                            <button class="btn btn-sm ${mySub ? 'btn-blue' : (isOverdue ? 'btn-warning':'')}" onclick="Features.openHwSubmit('${h.id}')">
+                                ${mySub ? '<i class="fa fa-eye"></i> Xem bài đã nộp' : (isOverdue ? '<i class="fa fa-exclamation-triangle"></i> Nộp trễ' : '<i class="fa fa-upload"></i> Nộp bài ngay')}
+                            </button>
+                        </div>`;
+                    });
+                    c.innerHTML = hHtml;
+                }
+                
+                // MODULE QUẢN LÝ BÀI TẬP (GV)
+                else if(page === 'hw_manage') {
+                    let mHtml = `<div class="flex-control" style="justify-content:space-between">
+                                    <h2>📝 Quản Lý Bài Tập</h2>
+                                    <button class="btn btn-green" onclick="document.getElementById('createHwModal').style.display='flex'">+ Giao Bài Mới</button>
+                                 </div>`;
+                    if(!DB.hw || DB.hw.length === 0) mHtml += `<div class="card">Chưa giao bài tập nào.</div>`;
+                    
+                    (DB.hw || []).reverse().forEach(h => {
+                        const totalSubs = h.subs ? h.subs.length : 0;
+                        mHtml += `
+                        <div class="card hw-item">
+                            <div class="hw-title">${h.title}</div>
+                            <div class="hw-meta">
+                                <span><i class="fa fa-clock"></i> Hạn: <b>${Utils.formatDate(h.deadline)}</b></span>
+                                <span><i class="fa fa-users"></i> Đã nộp: <b style="color:var(--pri)">${totalSubs}/${STUDENT_LIST.length}</b></span>
+                            </div>
+                            <button class="btn btn-sm btn-blue" onclick="Features.openHwGrade('${h.id}')"><i class="fa fa-edit"></i> Xem & Chấm Bài</button>
+                        </div>`;
+                    });
+                    c.innerHTML = mHtml;
+                }
+
+                // HỒ SƠ CÁ NHÂN (PROFILE & ĐỔI AVATAR)
+                else if(page === 'profile') {
+                    const avatarUrl = DB.avatars[CURRENT_USER.u] || '';
+                    c.innerHTML = `
+                        <h2><i class="fa fa-user-circle"></i> Hồ Sơ Cá Nhân</h2>
+                        <div class="card" style="max-width:500px">
+                            <label style="font-weight:bold">Mã định danh (ID):</label>
+                            <input type="text" value="${CURRENT_USER.u}" disabled style="background:#eee; font-family:monospace">
+                            
+                            <label style="font-weight:bold; margin-top:10px; display:block">Link Ảnh Đại Diện / Ảnh bìa:</label>
+                            <div style="font-size:12px; color:#888; margin-bottom:5px">⚠️ Do hệ thống không lưu trữ file cứng, bạn hãy tải ảnh lên Facebook/Drive/Imgur rồi copy Link dán vào đây.</div>
+                            <input type="url" id="inpAvatar" placeholder="https://..." value="${avatarUrl}">
+                            
+                            <hr style="border:0; border-top:1px solid #eee; margin:20px 0">
+                            <label style="font-weight:bold">Đổi Mật Khẩu:</label>
+                            <input type="password" id="oldP" placeholder="Mật khẩu cũ">
+                            <input type="password" id="newP" placeholder="Mật khẩu mới">
+                            
+                            <button class="btn" id="btnUpdateProfile" style="margin-top:15px; width:100%" onclick="Features.updateProfile()"><i class="fa fa-save"></i> LƯU THAY ĐỔI</button>
+                        </div>`;
+                }
+
+                // CÁC TRANG CŨ GIỮ NGUYÊN (Rules, Form, Mailbox, Approve, Grading, ClassList, Accounts, Settings, Schedule)
+                else if(page === 'rules') c.innerHTML = `<div style="display:flex; gap:20px; flex-wrap:wrap;"><div class="card" style="flex:1; min-width:280px"><h3>🏛️ NỘI QUY ${DB.config.schoolName}</h3><ul><li>Đi học đúng giờ.</li><li>Lễ phép với thầy cô.</li><li>Giữ gìn vệ sinh chung.</li></ul></div><div class="card" style="flex:1; min-width:280px"><h3>🏫 NỘI QUY ${DB.config.className}</h3><ul><li>Truy bài 15 phút đầu giờ.</li><li>Không dùng điện thoại trong giờ.</li><li>Đoàn kết, giúp đỡ bạn bè.</li></ul></div></div>`;
+                else if(page === 'schedule') { const canEditTkb = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let optTkb = ''; DB.scheduleList.forEach(s => optTkb += `<option value="${s}">${s}</option>`); c.innerHTML = `<div class="flex-control"><h2>📅 Thời Khóa Biểu</h2><select id="tkbSelect" onchange="Features.loadScheduleView()" style="flex:1">${optTkb}</select>${canEditTkb ? `<button class="btn btn-green" onclick="Features.addTKBVersion()">+ Thêm Giai đoạn</button>` : ''}</div><div class="card" id="tkbContainer"></div>${canEditTkb ? `<button class="btn" style="margin-top:10px" id="btnSaveTKB" onclick="Features.saveSchedule()"><i class="fa fa-save"></i> Lưu Thời Khóa Biểu này</button>` : ''}`; Features.loadScheduleView(); }
+                else if(page === 'form') { c.innerHTML = `<div class="card"><div class="flex-control" style="justify-content:space-between"><h2>📝 Soạn Văn Bản</h2><select id="fType" onchange="Features.renderFormPaper()" style="width:200px"><option value="nghi">Đơn xin nghỉ học</option><option value="tuongtrinh">Bản tường trình</option><option value="camket">Bản cam kết</option></select></div><div id="paperArea" style="background:#ccc; padding:20px;"></div><button class="btn" id="btnSendForm" style="margin-top:20px; width:100%" onclick="Features.sendForm()"><i class="fa fa-paper-plane"></i> GỬI ĐƠN NÀY LÊN GIÁO VIÊN</button></div>`; Features.renderFormPaper(); }
+                else if(page === 'mailbox') { const myReqs = DB.reqs.filter(r => r.sid === CURRENT_USER.u).reverse(); let mailHtml = `<h2>📬 Hộp Thư Đơn Từ</h2><div class="card">`; if(myReqs.length === 0) mailHtml += `<p>Trống.</p>`; myReqs.forEach(r => { let badgeClass = r.st === 'Đã duyệt' ? 'bg-ok' : (r.st === 'Hủy' ? 'bg-no' : 'bg-wait'); mailHtml += `<div style="border-bottom:1px solid #eee; padding:15px 0"><div style="display:flex; justify-content:space-between"><b style="color:var(--pri)">${r.type}</b><span class="badge ${badgeClass}">${r.st}</span></div><div style="font-size:13px; color:#555; margin-top:5px">Ngày: ${r.date}</div><div style="background:#f9f9f9; padding:10px; margin-top:10px; border-left:3px solid var(--pri)"><b>💬 GV Nhắn:</b> ${r.reply || '<i>Đang chờ...</i>'}</div></div>`; }); c.innerHTML = mailHtml + `</div>`; }
+                else if(page === 'approve') { const allReqs = DB.reqs.filter(r => CURRENT_USER.r === 'admin' || r.cls === CURRENT_USER.c).reverse(); let tblHtml = `<h2>✅ Duyệt Đơn Từ HS</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Học sinh</th><th>Loại Đơn</th><th>Nội dung</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>`; if(allReqs.length === 0) tblHtml += `<tr><td colspan="5">Trống</td></tr>`; allReqs.forEach(r => { let badge = r.st === 'Đã duyệt' ? 'bg-ok' : (r.st === 'Hủy' ? 'bg-no' : 'bg-wait'); let actionBtn = (r.st === 'Chờ' && CURRENT_USER.r !== 'admin') ? `<button class="btn btn-sm btn-warning" onclick="Features.openReply('${r.id}')">Phản hồi</button>` : (r.st === 'Chờ' ? 'Chờ GV' : `Đã xử lý`); tblHtml += `<tr><td><b>${r.sname}</b><br><small>${r.sid}</small></td><td>${r.secure?'<i class="fa fa-lock" style="color:red"></i> ':''}${r.type}</td><td><b style="color:#666">${r.date}</b><br>${r.txt}</td><td><span class="badge ${badge}">${r.st}</span></td><td>${actionBtn}</td></tr>`; }); c.innerHTML = tblHtml + `</tbody></table></div></div>`; }
+                else if(page === 'grading') { let optWeek = ''; DB.weekList.forEach(w => optWeek += `<option value="${w}">${w}</option>`); c.innerHTML = `<div class="flex-control"><h2>✍️ Chấm Điểm Thi Đua</h2><select id="wSelect" onchange="Features.loadWeekData()" style="flex:1">${optWeek}</select><button class="btn btn-green" onclick="Features.addWeekVersion()">+ Tuần Mới</button></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Mã HS</th><th>Họ Tên</th><th>Điểm</th><th>Xếp loại</th><th>Ghi chú</th></tr></thead><tbody id="gradeTable"></tbody></table></div></div><button class="btn" id="btnSaveGrade" style="margin-top:20px; width:100%" onclick="Features.saveGrades()"><i class="fa fa-save"></i> LƯU ĐIỂM</button>`; Features.loadWeekData(); }
+                else if(page === 'my_rank') { const myW = DB.weekly.filter(w => w.sid === CURRENT_USER.u); let rankHtml = `<h2>🏆 Điểm Thi Đua Cá Nhân</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Tuần</th><th>Điểm</th><th>Xếp loại</th><th>Nhận xét</th></tr></thead><tbody>`; if(myW.length === 0) rankHtml += `<tr><td colspan="4">Trống</td></tr>`; myW.forEach(w => { let b = w.rank === 'Tốt' ? 'bg-ok' : 'bg-wait'; rankHtml += `<tr><td><b>${w.week}</b></td><td style="color:var(--pri); font-weight:bold; font-size:16px">${w.score}</td><td><span class="badge ${b}">${w.rank}</span></td><td>${w.note}</td></tr>`; }); c.innerHTML = rankHtml + `</tbody></table></div></div>`; }
+                else if(page === 'class_list') { let clsHtml = `<h2>👥 Danh Sách ${DB.config.className}</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>STT</th><th>Mã ID</th><th>Họ Tên</th></tr></thead><tbody>`; STUDENT_LIST.forEach((s, idx) => { clsHtml += `<tr><td>${idx + 1}</td><td style="font-family:monospace;">${s.id}</td><td><b>${s.name}</b></td></tr>`; }); c.innerHTML = clsHtml + `</tbody></table></div></div>`; }
+                else if(page === 'accounts') { const studs = DB.users.filter(u => u.r === 'student'); let accHtml = `<h2>⚙️ Cấp lại Mật khẩu</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>ID</th><th>Họ Tên</th><th>Pass hiện tại</th><th>Thao tác</th></tr></thead><tbody>`; studs.forEach(s => { accHtml += `<tr><td><b>${s.u}</b></td><td>${s.n}</td><td style="font-family:monospace; background:#f9f9f9">${s.p}</td><td><button class="btn btn-sm btn-warning" onclick="Features.changePassByAdmin('${s.u}', '${s.n}')">Đổi MK</button></td></tr>`; }); c.innerHTML = accHtml + `</tbody></table></div></div>`; }
+                else if(page === 'settings') { c.innerHTML = `<h2>🔧 Cài đặt Hệ Thống</h2><div class="card"><label>Tên Lớp:</label><input id="set_class" value="${DB.config.className}"><label>Tên Trường:</label><input id="set_school" value="${DB.config.schoolName}"><label>Niên khóa:</label><input id="set_year" value="${DB.config.year}"><button class="btn btn-green" id="btnSaveSet" style="margin-top:20px; width:100%" onclick="Features.saveSettings()">LƯU</button></div>`; }
+            }
+        };
+
+        const Features = {
+            /* --- BÀI TẬP VỀ NHÀ LÓGIC --- */
+            submitNewHW: async () => {
+                const title = document.getElementById('hwTitle').value;
+                const desc = document.getElementById('hwDesc').value;
+                const deadline = document.getElementById('hwDeadline').value;
+                const link = document.getElementById('hwLink').value;
+
+                if(!title || !deadline) return alert("Vui lòng nhập Tiêu đề và Hạn nộp!");
+                
+                const btn = document.getElementById('btnCreateHW'); btn.disabled = true; btn.innerText = "Đang giao...";
+                UI.showLoading("Đang tải lên hệ thống...");
+
+                if(!DB.hw) DB.hw = [];
+                DB.hw.push({ id: 'hw_' + Date.now(), title: title, desc: desc, deadline: deadline, link: link, subs: [] });
+                await Network.saveData();
+                
+                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n*Các em vào web để xem chi tiết!*`);
+
+                UI.hideLoading(); btn.disabled = false; btn.innerText = "Giao Bài Ngay";
+                document.getElementById('createHwModal').style.display='none';
+                Router.nav('hw_manage');
+            },
+
+            openHwSubmit: (hwId) => {
+                const hw = DB.hw.find(x => x.id === hwId);
+                if(!hw) return;
+                const mySub = hw.subs ? hw.subs.find(x => x.sid === CURRENT_USER.u) : null;
+                const isOverdue = new Date(hw.deadline) < new Date();
+
+                let content = `<h3 style="margin-top:0; color:var(--pri)">Nộp bài: ${hw.title}</h3>`;
+                
+                if(mySub) {
+                    content += `<div style="background:#eef2ff; padding:15px; border-radius:8px; margin-bottom:15px">
+                                    <b><i class="fa fa-check-circle" style="color:var(--pri)"></i> Em đã nộp bài.</b><br>
+                                    Thời gian nộp: ${Utils.formatDate(mySub.time)}<br>
+                                    Link bài làm: ${mySub.link ? `<a href="${mySub.link}" target="_blank">Xem bài</a>` : 'Không có'}<br>
+                                    Ghi chú: ${mySub.text || 'Không có'}
+                                </div>`;
+                    if(mySub.grade) {
+                        content += `<div style="background:#fffbe6; padding:15px; border-radius:8px; border-left:4px solid #f39c12">
+                                        <b>Nhận xét của GV:</b> ${mySub.note || ''} <br>
+                                        <b>Điểm/Đánh giá:</b> <span style="font-size:18px; color:#d35400; font-weight:bold">${mySub.grade}</span>
+                                    </div>`;
+                    }
+                } else {
+                    if(isOverdue) content += `<div style="color:red; font-weight:bold; margin-bottom:10px">⚠️ Bài tập đã quá hạn nộp! (Trạng thái nộp sẽ bị tính là Nộp Trễ)</div>`;
+                    content += `<label>Link bài làm (Dán link Google Drive ảnh/file của em):</label>
+                                <input type="url" id="subLink" placeholder="https://...">
+                                <label>Ghi chú cho giáo viên:</label>
+                                <textarea id="subText" style="height:60px" placeholder="Em nộp bài ạ..."></textarea>
+                                <button class="btn btn-blue" style="width:100%; margin-top:10px" onclick="Features.submitHW('${hw.id}')"><i class="fa fa-upload"></i> XÁC NHẬN NỘP BÀI</button>`;
+                }
+                
+                content += `<button class="btn" style="background:#ddd; color:#333; width:100%; margin-top:10px" onclick="document.getElementById('viewHwModal').style.display='none'">Đóng</button>`;
+                document.getElementById('viewHwContent').innerHTML = content;
+                document.getElementById('viewHwModal').style.display = 'flex';
+            },
+
+            submitHW: async (hwId) => {
+                const link = document.getElementById('subLink').value;
+                const text = document.getElementById('subText').value;
+                if(!link && !text) return alert("Vui lòng nhập Link bài làm hoặc Ghi chú!");
+
+                UI.showLoading("Đang gửi bài...");
+                const hwIndex = DB.hw.findIndex(x => x.id === hwId);
+                if(hwIndex > -1) {
+                    if(!DB.hw[hwIndex].subs) DB.hw[hwIndex].subs = [];
+                    DB.hw[hwIndex].subs.push({ sid: CURRENT_USER.u, sname: CURRENT_USER.n, link: link, text: text, time: new Date().toISOString(), grade: '', note: '' });
+                    await Network.saveData();
+                    await Network.sendToDiscord(false, "📩 CÓ BÀI NỘP MỚI", `Học sinh **${CURRENT_USER.n}** vừa nộp bài: *${DB.hw[hwIndex].title}*`);
+                }
+                UI.hideLoading();
+                document.getElementById('viewHwModal').style.display='none';
+                alert("Nộp bài thành công!"); Router.nav('homework');
+            },
+
+            openHwGrade: (hwId) => {
+                const hw = DB.hw.find(x => x.id === hwId);
+                if(!hw) return;
+                
+                let content = `<h3 style="margin-top:0; color:var(--pri)">Chấm bài: ${hw.title}</h3>
+                               <div style="max-height: 400px; overflow-y:auto">`;
+                
+                if(!hw.subs || hw.subs.length === 0) {
+                    content += `<p>Chưa có học sinh nào nộp bài.</p>`;
+                } else {
+                    hw.subs.forEach((sub, idx) => {
+                        const isLate = new Date(sub.time) > new Date(hw.deadline);
+                        content += `
+                        <div style="border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:5px">
+                            <div style="display:flex; justify-content:space-between">
+                                <b>${sub.sname} <small>(${sub.sid})</small></b>
+                                ${isLate ? '<span style="color:red; font-size:11px; font-weight:bold">NỘP TRỄ</span>' : ''}
+                            </div>
+                            <div style="font-size:12px; margin-top:5px">Link: ${sub.link ? `<a href="${sub.link}" target="_blank">Mở File</a>` : 'Không có'}</div>
+                            <div style="font-size:12px; background:#f9f9f9; padding:5px; margin:5px 0">HS Ghi chú: ${sub.text || ''}</div>
+                            <div style="display:flex; gap:10px; margin-top:10px">
+                                <input type="text" id="g_${hw.id}_${sub.sid}" value="${sub.grade||''}" placeholder="Điểm/Đánh giá" style="margin:0; width:40%">
+                                <input type="text" id="n_${hw.id}_${sub.sid}" value="${sub.note||''}" placeholder="Lời phê GV" style="margin:0; flex:1">
+                            </div>
+                        </div>`;
+                    });
+                }
+                content += `</div>
+                            <div style="display:flex; gap:10px; margin-top:15px">
+                                <button class="btn" style="background:#ddd; color:#333; flex:1" onclick="document.getElementById('viewHwModal').style.display='none'">Đóng</button>
+                                ${hw.subs && hw.subs.length > 0 ? `<button class="btn btn-green" style="flex:2" onclick="Features.saveHwGrades('${hw.id}')"><i class="fa fa-save"></i> Lưu Điểm Chấm</button>` : ''}
+                            </div>`;
+                document.getElementById('viewHwContent').innerHTML = content;
+                document.getElementById('viewHwModal').style.display = 'flex';
+            },
+
+            saveHwGrades: async (hwId) => {
+                const hwIndex = DB.hw.findIndex(x => x.id === hwId);
+                if(hwIndex === -1) return;
+                
+                UI.showLoading("Đang lưu điểm bài tập...");
+                DB.hw[hwIndex].subs.forEach(sub => {
+                    const g = document.getElementById(`g_${hwId}_${sub.sid}`).value;
+                    const n = document.getElementById(`n_${hwId}_${sub.sid}`).value;
+                    sub.grade = g; sub.note = n;
+                });
+                await Network.saveData();
+                UI.hideLoading();
+                document.getElementById('viewHwModal').style.display='none';
+                alert("Đã lưu điểm bài tập!"); Router.nav('hw_manage');
+            },
+
+            /* --- HỒ SƠ & TÀI KHOẢN --- */
+            updateProfile: async () => {
+                const avaUrl = document.getElementById('inpAvatar').value;
+                const oldP = document.getElementById('oldP').value;
+                const newP = document.getElementById('newP').value;
+                
+                let needSave = false;
+
+                if (oldP || newP) {
+                    if(oldP !== CURRENT_USER.p) return alert("Mật khẩu cũ không đúng!");
+                    if(!newP) return alert("Chưa nhập mật khẩu mới!");
+                    const idx = DB.users.findIndex(x => x.u === CURRENT_USER.u);
+                    if(idx > -1) { DB.users[idx].p = newP; CURRENT_USER.p = newP; needSave = true; }
+                }
+
+                if (avaUrl !== DB.avatars[CURRENT_USER.u]) {
+                    DB.avatars[CURRENT_USER.u] = avaUrl;
+                    needSave = true;
+                }
+
+                if(needSave) {
+                    UI.showLoading("Đang cập nhật hồ sơ...");
+                    await Network.saveData();
+                    UI.updateConfigText(); // Cập nhật lại ảnh ngay lập tức
+                    UI.hideLoading();
+                    alert("Cập nhật hồ sơ thành công!");
+                    document.getElementById('oldP').value = ''; document.getElementById('newP').value = '';
+                } else {
+                    alert("Không có thay đổi nào để lưu.");
+                }
+            },
+
+            /* --- CÁC HÀM CŨ GIỮ NGUYÊN (Schedule, Form, Đơn từ...) --- */
+            addWeekVersion: async () => { const n = prompt("Tên tuần mới:"); if(n && !DB.weekList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.weekList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('grading'); } },
+            addTKBVersion: async () => { const n = prompt("Tên TKB mới:"); if(n && !DB.scheduleList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.scheduleList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('schedule'); } },
+            loadScheduleView: () => { const ver = document.getElementById('tkbSelect').value; const canEdit = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let html = `<div class="table-wrap"><table><thead><tr><th>Tiết</th><th>Thứ 2</th><th>Thứ 3</th><th>Thứ 4</th><th>Thứ 5</th><th>Thứ 6</th><th>Thứ 7</th></tr></thead><tbody>`; for(let i=1; i<=5; i++) { html += `<tr><td style="font-weight:bold; background:#f9f9f9">Tiết ${i}</td>`; for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; const val = (DB.schedule && DB.schedule[key]) ? DB.schedule[key] : ''; if(canEdit) html += `<td><input class="tkb-input" id="${key}" value="${val}" placeholder="..."></td>`; else html += `<td>${val || '-'}</td>`; } html += `</tr>`; } html += `</tbody></table></div>`; document.getElementById('tkbContainer').innerHTML = html; },
+            saveSchedule: async () => { UI.showLoading("Đang lưu..."); const ver = document.getElementById('tkbSelect').value; for(let i=1; i<=5; i++) { for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; DB.schedule[key] = document.getElementById(key).value; } } await Network.saveData(); UI.hideLoading(); alert("Đã lưu TKB!"); },
+            changePassByAdmin: async (uid, uname) => { const newP = prompt(`Mật khẩu mới cho [${uname}]:`); if(!newP) return; UI.showLoading(`Đang xử lý...`); const u = DB.users.find(x => x.u === uid); if(u) { u.p = newP; await Network.saveData(); } UI.hideLoading(); alert("Đổi thành công!"); Router.nav('accounts'); },
+            saveSettings: async () => { UI.showLoading("Đang lưu..."); DB.config.className = document.getElementById('set_class').value; DB.config.schoolName = document.getElementById('set_school').value; DB.config.year = document.getElementById('set_year').value; await Network.saveData(); UI.updateConfigText(); UI.hideLoading(); alert("Thành công!"); },
+            renderFormPaper: () => { const t = document.getElementById('fType').value; const a = document.getElementById('paperArea'); const header = `<div class="legal-header"><div class="legal-nation">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class="legal-motto">Độc lập - Tự do - Hạnh phúc</div></div>`; window.updateFooterDate = function(el) { const d = new Date(el.value); if(!isNaN(d.getTime())) { document.getElementById('footerDate').innerText = `Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`; } }; let body = ''; if(t === 'nghi') { body = `<div class="legal-title">ĐƠN XIN NGHỈ HỌC</div><p>Kính gửi: GVCN ${DB.config.className}</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Xin nghỉ từ: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Lý do: <input id="fTxt" class="legal-input" style="width:70%" placeholder="..."></p>`; } else if(t === 'tuongtrinh') { body = `<div class="legal-title">BẢN TƯỜNG TRÌNH</div><p>Kính gửi: GVCN</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Nội dung: <input id="fTxt" class="legal-input" style="width:100%; margin-top:10px"></p>`; } else { body = `<div class="legal-title">BẢN CAM KẾT</div><p>Kính gửi: GVCN</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Cam kết: <input id="fTxt" class="legal-input" style="width:100%; margin-top:10px"></p>`; } a.innerHTML = `<div class="legal-paper">${header}${body}<br><br><div style="text-align:right"><i id="footerDate">Ngày... tháng... năm...</i><br><b>Người làm đơn</b><br><br><br><br>${CURRENT_USER.n}</div></div>`; },
+            sendForm: async () => { const txt = document.getElementById('fTxt').value; const dateVal = document.getElementById('datePicker').value; if(!txt || !dateVal) return alert('Thiếu thông tin!'); UI.showLoading("Đang gửi..."); const d = new Date(dateVal); const fmtDate = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; const tVal = document.getElementById('fType').value; const sel = document.getElementById('fType'); const tText = sel.options[sel.selectedIndex].text; const isSecure = (tVal !== 'nghi'); DB.reqs.push({ id: Date.now(), sid: CURRENT_USER.u, sname: CURRENT_USER.n, cls: CURRENT_USER.c, type: tText, txt: txt, st: 'Chờ', reply: '', secure: isSecure, date: fmtDate }); await Network.saveData(); await Network.sendToDiscord(isSecure, isSecure ? "🔒 VĂN BẢN BẢO MẬT" : "📝 ĐƠN XIN NGHỈ", `**Học sinh:** ${CURRENT_USER.n}\n**Lớp:** ${DB.config.className}\n**Nội dung:** ${txt}`); UI.hideLoading(); alert('Thành công!'); Router.nav('mailbox'); },
+            openReply: (id) => { currentReplyId = id; selectedStatus = null; document.getElementById('replyModal').style.display = 'flex'; document.getElementById('replyTxt').value = ''; document.getElementById('statusPreview').innerText='Chưa chọn'; document.getElementById('statusPreview').className='badge bg-wait'; },
+            selectStatus: (st) => { selectedStatus = st; const el = document.getElementById('statusPreview'); el.innerText = st === 'Đã duyệt' ? 'Sẽ Duyệt' : 'Từ Chối'; el.className = st === 'Đã duyệt' ? 'badge bg-ok' : 'badge bg-no'; },
+            submitReplyFinal: async () => { const note = document.getElementById('replyTxt').value; if (!selectedStatus) return alert("Chọn trạng thái (Duyệt/Từ chối)!"); const r = DB.reqs.find(x => x.id == currentReplyId); if(r) { UI.showLoading("Đang xử lý..."); r.st = selectedStatus; r.reply = note; await Network.saveData(); await Network.sendToDiscord(r.secure, selectedStatus === 'Đã duyệt' ? "✅ ĐÃ DUYỆT ĐƠN" : "❌ TỪ CHỐI ĐƠN", `GV đã trả lời.\n**Học sinh:** ${r.sname}\n**Lời nhắn:** ${note}`); UI.hideLoading(); document.getElementById('replyModal').style.display='none'; Router.nav('approve'); } },
+            loadWeekData: () => { const w = document.getElementById('wSelect').value; const tb = document.getElementById('gradeTable'); tb.innerHTML = ''; STUDENT_LIST.forEach(s => { const old = DB.weekly.find(x => x.week == w && x.sid == s.id) || {}; tb.innerHTML += `<tr><td style="font-family:monospace;">${s.id}</td><td><b>${s.name}</b></td><td><input type="number" id="s_${s.id}" value="${old.score||100}" style="width:60px;"></td><td><select id="r_${s.id}"><option ${old.rank=='Tốt'?'selected':''}>Tốt</option><option ${old.rank=='Khá'?'selected':''}>Khá</option><option ${old.rank=='TB'?'selected':''}>TB</option></select></td><td><input type="text" id="n_${s.id}" value="${old.note||''}"></td></tr>`; }); },
+            saveGrades: async () => { UI.showLoading("Đang lưu..."); const w = document.getElementById('wSelect').value; STUDENT_LIST.forEach(s => { const idx = DB.weekly.findIndex(x => x.week == w && x.sid == s.id); if(idx > -1) DB.weekly.splice(idx, 1); DB.weekly.push({ week: w, sid: s.id, score: document.getElementById(`s_${s.id}`).value, rank: document.getElementById(`r_${s.id}`).value, note: document.getElementById(`n_${s.id}`).value }); }); await Network.saveData(); UI.hideLoading(); alert(`Đã lưu!`); }
+        };
+
+        // KÍCH HOẠT
+        App.init();
+
     </script>
 </body>
 </html>
-
-

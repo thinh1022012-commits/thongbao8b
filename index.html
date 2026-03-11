@@ -173,9 +173,9 @@
            ========================================================================== */
         const CONFIG = {
             // 👇👇👇 DÁN LINK CỦA BẠN VÀO ĐÂY 👇👇👇
-            API_URL: "https://script.google.com/macros/s/AKfycbz5nIFpRMyvaDup5bwzRigkw7zr-n99mppGLY-u7QjLoZb_nv1GOErafeJAoZpU5jpn/exec", 
-            WH_PUBLIC: "https://discord.com/api/webhooks/1456305070181449789/gySnBocRkplcH8UrQvWpnDkg_8472oeOUFCjgOh23NkaGKbMFd7_crtncR5CF44D9lk7?wait=true",
-            WH_PRIVATE: "https://discord.com/api/webhooks/1456659542699151598/j0LjBOW3wUnNN0p7lWeL5kvbfC4iITGuw5tZ47AWzVluPnsom1qrGGrKMRg3F1cIRRrY?wait=true"
+            API_URL: "DÁN_LINK_GOOGLE_SCRIPT_CỦA_BẠN_VÀO_ĐÂY", 
+            WH_PUBLIC: "DÁN_LINK_WEBHOOK_DISCORD_CHUNG_VÀO_ĐÂY",
+            WH_PRIVATE: "DÁN_LINK_WEBHOOK_DISCORD_BÍ_MẬT_VÀO_ĐÂY"
         };
 
         const RAW_STUDENTS = [
@@ -199,8 +199,8 @@
 
         let DB = { 
             reqs: [], weekly: [], users: [], schedule: {}, 
-            hw: [], // Lưu trữ bài tập
-            avatars: {}, // Lưu trữ link ảnh đại diện
+            hw: [], 
+            avatars: {}, 
             weekList: ["Tuần 1"], scheduleList: ["Học Kỳ 1"],
             config: { className: "LỚP 8B", schoolName: "TRƯỜNG THCS NGUYỄN VIẾT XUÂN", year: "2025 - 2026" } 
         };
@@ -277,8 +277,8 @@
                         if(!DB.weekList) DB.weekList = ["Tuần 1"];
                         if(!DB.scheduleList) DB.scheduleList = ["Học Kỳ 1"];
                         if(!DB.schedule) DB.schedule = {};
-                        if(!DB.hw) DB.hw = []; // Init Homework
-                        if(!DB.avatars) DB.avatars = {}; // Init Avatars
+                        if(!DB.hw) DB.hw = []; 
+                        if(!DB.avatars) DB.avatars = {}; 
                     }
                     UI.updateConfigText();
                 } catch(e) { console.error("Lỗi", e); }
@@ -301,7 +301,7 @@
                     await fetch(url, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            username: "Cô Hà", // ĐÃ ĐỔI TÊN BOT THÀNH CÔ HÀ
+                            username: "Cô Hà", 
                             embeds: [{ title: title, description: description, color: color }]
                         })
                     });
@@ -446,7 +446,39 @@
                         </div>`;
                 }
 
-                // CÁC TRANG CŨ GIỮ NGUYÊN (Rules, Form, Mailbox, Approve, Grading, ClassList, Accounts, Settings, Schedule)
+                // --- HIỂN THỊ AVATAR TRONG DANH SÁCH LỚP ---
+                else if(page === 'class_list') { 
+                    let clsHtml = `<h2>👥 Danh Sách ${DB.config.className}</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>STT</th><th>Ảnh</th><th>Mã ID</th><th>Họ và Tên</th></tr></thead><tbody>`; 
+                    STUDENT_LIST.forEach((s, idx) => { 
+                        const ava = DB.avatars[s.id] || 'https://i.imgur.com/6VBx3io.png'; // Lấy ảnh nếu có, không thì lấy ảnh mặc định
+                        clsHtml += `<tr>
+                                        <td>${idx + 1}</td>
+                                        <td><img src="${ava}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #ddd; box-shadow:0 2px 4px rgba(0,0,0,0.1);"></td>
+                                        <td style="font-family:monospace;">${s.id}</td>
+                                        <td style="text-align:center;"><b>${s.name}</b></td>
+                                    </tr>`; 
+                    }); 
+                    c.innerHTML = clsHtml + `</tbody></table></div></div>`; 
+                }
+
+                // --- HIỂN THỊ AVATAR TRONG QUẢN LÝ TÀI KHOẢN (GV/ADMIN) ---
+                else if(page === 'accounts') { 
+                    const studs = DB.users.filter(u => u.r === 'student'); 
+                    let accHtml = `<h2>⚙️ Cấp lại Mật khẩu</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Ảnh</th><th>Mã ID</th><th>Họ Tên</th><th>Pass hiện tại</th><th>Thao tác</th></tr></thead><tbody>`; 
+                    studs.forEach(s => { 
+                        const ava = DB.avatars[s.u] || 'https://i.imgur.com/6VBx3io.png';
+                        accHtml += `<tr>
+                                        <td><img src="${ava}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border:1px solid #ddd;"></td>
+                                        <td><b>${s.u}</b></td>
+                                        <td>${s.n}</td>
+                                        <td style="font-family:monospace; background:#f9f9f9">${s.p}</td>
+                                        <td><button class="btn btn-sm btn-warning" onclick="Features.changePassByAdmin('${s.u}', '${s.n}')">Đổi MK</button></td>
+                                    </tr>`; 
+                    }); 
+                    c.innerHTML = accHtml + `</tbody></table></div></div>`; 
+                }
+
+                // CÁC TRANG CŨ GIỮ NGUYÊN (Rules, Form, Mailbox, Approve, Grading, Settings, Schedule)
                 else if(page === 'rules') c.innerHTML = `<div style="display:flex; gap:20px; flex-wrap:wrap;"><div class="card" style="flex:1; min-width:280px"><h3>🏛️ NỘI QUY ${DB.config.schoolName}</h3><ul><li>Đi học đúng giờ.</li><li>Lễ phép với thầy cô.</li><li>Giữ gìn vệ sinh chung.</li></ul></div><div class="card" style="flex:1; min-width:280px"><h3>🏫 NỘI QUY ${DB.config.className}</h3><ul><li>Truy bài 15 phút đầu giờ.</li><li>Không dùng điện thoại trong giờ.</li><li>Đoàn kết, giúp đỡ bạn bè.</li></ul></div></div>`;
                 else if(page === 'schedule') { const canEditTkb = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let optTkb = ''; DB.scheduleList.forEach(s => optTkb += `<option value="${s}">${s}</option>`); c.innerHTML = `<div class="flex-control"><h2>📅 Thời Khóa Biểu</h2><select id="tkbSelect" onchange="Features.loadScheduleView()" style="flex:1">${optTkb}</select>${canEditTkb ? `<button class="btn btn-green" onclick="Features.addTKBVersion()">+ Thêm Giai đoạn</button>` : ''}</div><div class="card" id="tkbContainer"></div>${canEditTkb ? `<button class="btn" style="margin-top:10px" id="btnSaveTKB" onclick="Features.saveSchedule()"><i class="fa fa-save"></i> Lưu Thời Khóa Biểu này</button>` : ''}`; Features.loadScheduleView(); }
                 else if(page === 'form') { c.innerHTML = `<div class="card"><div class="flex-control" style="justify-content:space-between"><h2>📝 Soạn Văn Bản</h2><select id="fType" onchange="Features.renderFormPaper()" style="width:200px"><option value="nghi">Đơn xin nghỉ học</option><option value="tuongtrinh">Bản tường trình</option><option value="camket">Bản cam kết</option></select></div><div id="paperArea" style="background:#ccc; padding:20px;"></div><button class="btn" id="btnSendForm" style="margin-top:20px; width:100%" onclick="Features.sendForm()"><i class="fa fa-paper-plane"></i> GỬI ĐƠN NÀY LÊN GIÁO VIÊN</button></div>`; Features.renderFormPaper(); }
@@ -454,8 +486,6 @@
                 else if(page === 'approve') { const allReqs = DB.reqs.filter(r => CURRENT_USER.r === 'admin' || r.cls === CURRENT_USER.c).reverse(); let tblHtml = `<h2>✅ Duyệt Đơn Từ HS</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Học sinh</th><th>Loại Đơn</th><th>Nội dung</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>`; if(allReqs.length === 0) tblHtml += `<tr><td colspan="5">Trống</td></tr>`; allReqs.forEach(r => { let badge = r.st === 'Đã duyệt' ? 'bg-ok' : (r.st === 'Hủy' ? 'bg-no' : 'bg-wait'); let actionBtn = (r.st === 'Chờ' && CURRENT_USER.r !== 'admin') ? `<button class="btn btn-sm btn-warning" onclick="Features.openReply('${r.id}')">Phản hồi</button>` : (r.st === 'Chờ' ? 'Chờ GV' : `Đã xử lý`); tblHtml += `<tr><td><b>${r.sname}</b><br><small>${r.sid}</small></td><td>${r.secure?'<i class="fa fa-lock" style="color:red"></i> ':''}${r.type}</td><td><b style="color:#666">${r.date}</b><br>${r.txt}</td><td><span class="badge ${badge}">${r.st}</span></td><td>${actionBtn}</td></tr>`; }); c.innerHTML = tblHtml + `</tbody></table></div></div>`; }
                 else if(page === 'grading') { let optWeek = ''; DB.weekList.forEach(w => optWeek += `<option value="${w}">${w}</option>`); c.innerHTML = `<div class="flex-control"><h2>✍️ Chấm Điểm Thi Đua</h2><select id="wSelect" onchange="Features.loadWeekData()" style="flex:1">${optWeek}</select><button class="btn btn-green" onclick="Features.addWeekVersion()">+ Tuần Mới</button></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Mã HS</th><th>Họ Tên</th><th>Điểm</th><th>Xếp loại</th><th>Ghi chú</th></tr></thead><tbody id="gradeTable"></tbody></table></div></div><button class="btn" id="btnSaveGrade" style="margin-top:20px; width:100%" onclick="Features.saveGrades()"><i class="fa fa-save"></i> LƯU ĐIỂM</button>`; Features.loadWeekData(); }
                 else if(page === 'my_rank') { const myW = DB.weekly.filter(w => w.sid === CURRENT_USER.u); let rankHtml = `<h2>🏆 Điểm Thi Đua Cá Nhân</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Tuần</th><th>Điểm</th><th>Xếp loại</th><th>Nhận xét</th></tr></thead><tbody>`; if(myW.length === 0) rankHtml += `<tr><td colspan="4">Trống</td></tr>`; myW.forEach(w => { let b = w.rank === 'Tốt' ? 'bg-ok' : 'bg-wait'; rankHtml += `<tr><td><b>${w.week}</b></td><td style="color:var(--pri); font-weight:bold; font-size:16px">${w.score}</td><td><span class="badge ${b}">${w.rank}</span></td><td>${w.note}</td></tr>`; }); c.innerHTML = rankHtml + `</tbody></table></div></div>`; }
-                else if(page === 'class_list') { let clsHtml = `<h2>👥 Danh Sách ${DB.config.className}</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>STT</th><th>Mã ID</th><th>Họ Tên</th></tr></thead><tbody>`; STUDENT_LIST.forEach((s, idx) => { clsHtml += `<tr><td>${idx + 1}</td><td style="font-family:monospace;">${s.id}</td><td><b>${s.name}</b></td></tr>`; }); c.innerHTML = clsHtml + `</tbody></table></div></div>`; }
-                else if(page === 'accounts') { const studs = DB.users.filter(u => u.r === 'student'); let accHtml = `<h2>⚙️ Cấp lại Mật khẩu</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>ID</th><th>Họ Tên</th><th>Pass hiện tại</th><th>Thao tác</th></tr></thead><tbody>`; studs.forEach(s => { accHtml += `<tr><td><b>${s.u}</b></td><td>${s.n}</td><td style="font-family:monospace; background:#f9f9f9">${s.p}</td><td><button class="btn btn-sm btn-warning" onclick="Features.changePassByAdmin('${s.u}', '${s.n}')">Đổi MK</button></td></tr>`; }); c.innerHTML = accHtml + `</tbody></table></div></div>`; }
                 else if(page === 'settings') { c.innerHTML = `<h2>🔧 Cài đặt Hệ Thống</h2><div class="card"><label>Tên Lớp:</label><input id="set_class" value="${DB.config.className}"><label>Tên Trường:</label><input id="set_school" value="${DB.config.schoolName}"><label>Niên khóa:</label><input id="set_year" value="${DB.config.year}"><button class="btn btn-green" id="btnSaveSet" style="margin-top:20px; width:100%" onclick="Features.saveSettings()">LƯU</button></div>`; }
             }
         };
@@ -549,13 +579,17 @@
                 } else {
                     hw.subs.forEach((sub, idx) => {
                         const isLate = new Date(sub.time) > new Date(hw.deadline);
+                        const ava = DB.avatars[sub.sid] || 'https://i.imgur.com/6VBx3io.png'; // Load avatar HS
                         content += `
                         <div style="border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:5px">
-                            <div style="display:flex; justify-content:space-between">
-                                <b>${sub.sname} <small>(${sub.sid})</small></b>
+                            <div style="display:flex; justify-content:space-between; align-items:center">
+                                <div style="display:flex; align-items:center; gap:8px">
+                                    <img src="${ava}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
+                                    <b>${sub.sname} <small>(${sub.sid})</small></b>
+                                </div>
                                 ${isLate ? '<span style="color:red; font-size:11px; font-weight:bold">NỘP TRỄ</span>' : ''}
                             </div>
-                            <div style="font-size:12px; margin-top:5px">Link: ${sub.link ? `<a href="${sub.link}" target="_blank">Mở File</a>` : 'Không có'}</div>
+                            <div style="font-size:12px; margin-top:10px">Link: ${sub.link ? `<a href="${sub.link}" target="_blank">Mở File</a>` : 'Không có'}</div>
                             <div style="font-size:12px; background:#f9f9f9; padding:5px; margin:5px 0">HS Ghi chú: ${sub.text || ''}</div>
                             <div style="display:flex; gap:10px; margin-top:10px">
                                 <input type="text" id="g_${hw.id}_${sub.sid}" value="${sub.grade||''}" placeholder="Điểm/Đánh giá" style="margin:0; width:40%">

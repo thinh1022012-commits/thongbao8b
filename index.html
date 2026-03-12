@@ -167,13 +167,12 @@
 
     <script>
         /* ==========================================================================
-           PHẦN 1: CẤU HÌNH API & DISCORD
+           PHẦN 1: CẤU HÌNH API & DISCORD (ĐÃ ĐIỀN SẴN LINK CỦA BẠN)
            ========================================================================== */
         const CONFIG = {
-            // 👇👇👇 DÁN LINK CỦA BẠN VÀO 3 DÒNG NÀY 👇👇👇
-            API_URL: "DÁN_LINK_GOOGLE_SCRIPT_CỦA_BẠN_VÀO_ĐÂY", 
-            WH_PUBLIC: "DÁN_LINK_WEBHOOK_DISCORD_CHUNG_VÀO_ĐÂY",
-            WH_PRIVATE: "DÁN_LINK_WEBHOOK_DISCORD_BÍ_MẬT_VÀO_ĐÂY"
+            API_URL: "https://script.google.com/macros/s/AKfycbz5nIFpRMyvaDup5bwzRigkw7zr-n99mppGLY-u7QjLoZb_nv1GOErafeJAoZpU5jpn/exec", 
+            WH_PUBLIC: "https://discord.com/api/webhooks/1456305070181449789/gySnBocRkplcH8UrQvWpnDkg_8472oeOUFCjgOh23NkaGKbMFd7_crtncR5CF44D9lk7",
+            WH_PRIVATE: "https://discord.com/api/webhooks/1456659542699151598/j0LjBOW3wUnNN0p7lWeL5kvbfC4iITGuw5tZ47AWzVluPnsom1qrGGrKMRg3F1cIRRrY"
         };
 
         const RAW_STUDENTS = [
@@ -427,7 +426,7 @@
                             <input type="text" value="${CURRENT_USER.u}" disabled style="background:#eee; font-family:monospace">
                             
                             <label style="font-weight:bold; margin-top:10px; display:block">Link Ảnh Đại Diện / Ảnh bìa:</label>
-                            <div style="font-size:12px; color:#888; margin-bottom:5px">⚠️ Hãy tải ảnh lên trang <a href="https://postimages.org/" target="_blank" style="color:var(--pri)">Postimages</a>, copy "Direct link" và dán vào đây. Không dán ảnh trực tiếp!</div>
+                            <div style="font-size:12px; color:#888; margin-bottom:5px">⚠️ Hãy tải ảnh lên trang <a href="https://postimages.org/" target="_blank" style="color:var(--pri)">Postimages</a>, copy "Direct link" và dán vào đây. Không dán ảnh trực tiếp từ máy để tránh lỗi!</div>
                             <input type="url" id="inpAvatar" placeholder="https://..." value="${avatarUrl}">
                             
                             <hr style="border:0; border-top:1px solid #eee; margin:20px 0">

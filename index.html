@@ -130,14 +130,14 @@
         <div class="modal-box" style="max-width:500px">
             <h3 style="margin-top:0; color:var(--pri)">💬 Phản Hồi Đơn</h3>
             <div style="margin-bottom: 15px; font-weight: bold;">Trạng thái: <span id="statusPreview" class="badge bg-wait">Chưa chọn</span></div>
-            <textarea id="replyTxt" style="height:80px;" placeholder="Nhập nội dung..."></textarea>
-            <div style="display:flex; gap:10px; margin-bottom:15px">
-                <button class="btn btn-sm btn-green" onclick="Features.selectStatus('Đã duyệt')">Sẽ Duyệt</button>
-                <button class="btn btn-sm btn-warning" onclick="Features.selectStatus('Hủy')">Từ Chối</button>
+            <textarea id="replyTxt" style="height:80px; margin-bottom:15px" placeholder="Nhập nội dung phản hồi (nếu có)..."></textarea>
+            <div style="display:flex; gap:10px; margin-bottom:20px">
+                <button id="btnApprove" class="btn btn-sm btn-green" style="flex:1; transition:0.3s;" onclick="Features.selectStatus('Đã duyệt')"><i class="fa fa-check"></i> Chọn Sẽ Duyệt</button>
+                <button id="btnReject" class="btn btn-sm btn-warning" style="flex:1; transition:0.3s;" onclick="Features.selectStatus('Hủy')"><i class="fa fa-times"></i> Chọn Từ Chối</button>
             </div>
             <div style="display:flex; gap:10px;">
                 <button class="btn" style="background:#ddd; color:#333; flex:1" onclick="document.getElementById('replyModal').style.display='none'">Đóng</button>
-                <button class="btn" id="btnReplySubmit" style="flex:1" onclick="Features.submitReplyFinal()">Gửi Phản Hồi</button>
+                <button class="btn btn-blue" id="btnReplySubmit" style="flex:1" onclick="Features.submitReplyFinal()"><i class="fa fa-paper-plane"></i> Gửi Phản Hồi</button>
             </div>
         </div>
     </div>
@@ -167,7 +167,7 @@
 
     <script>
         /* ==========================================================================
-           PHẦN 1: CẤU HÌNH API & DISCORD (ĐÃ ĐIỀN SẴN LINK CỦA BẠN)
+           PHẦN 1: CẤU HÌNH API & DISCORD (ĐÃ ĐIỀN ĐỦ LINK CỦA BẠN)
            ========================================================================== */
         const CONFIG = {
             API_URL: "https://script.google.com/macros/s/AKfycbz5nIFpRMyvaDup5bwzRigkw7zr-n99mppGLY-u7QjLoZb_nv1GOErafeJAoZpU5jpn/exec", 
@@ -223,6 +223,10 @@
                 if(!isoString) return "";
                 const d = new Date(isoString);
                 return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} - ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+            },
+            // Hàm lấy link trang web hiện tại (để gắn vào Discord)
+            getWebLink: () => {
+                return window.location.href.split('#')[0].split('?')[0];
             }
         };
 
@@ -438,15 +442,26 @@
                         </div>`;
                 }
 
+                // CẬP NHẬT: Trạng thái Hôm nay trên Danh sách lớp
                 else if(page === 'class_list') { 
-                    let clsHtml = `<h2>👥 Danh Sách ${DB.config.className}</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>STT</th><th>Ảnh</th><th>Mã ID</th><th>Họ và Tên</th></tr></thead><tbody>`; 
+                    let clsHtml = `<h2>👥 Danh Sách ${DB.config.className}</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>STT</th><th>Ảnh</th><th>Mã ID</th><th>Họ và Tên</th><th>Trạng thái (Hôm nay)</th></tr></thead><tbody>`; 
+                    
+                    // Lấy ngày hôm nay định dạng DD/MM/YYYY để so sánh
+                    const todayObj = new Date();
+                    const todayStr = `${todayObj.getDate()}/${todayObj.getMonth()+1}/${todayObj.getFullYear()}`;
+
                     STUDENT_LIST.forEach((s, idx) => { 
                         const ava = DB.avatars[s.id] || 'https://i.imgur.com/6VBx3io.png';
+                        // Kiểm tra xem HS có đơn xin nghỉ nào Đã duyệt cho ngày hôm nay không
+                        const isAbsent = DB.reqs.some(r => r.sid === s.id && r.type === "Đơn xin nghỉ học" && r.st === "Đã duyệt" && r.date === todayStr);
+                        const statusBadge = isAbsent ? '<span class="badge bg-no" style="font-size:12px"><i class="fa fa-bed"></i> Có đơn nghỉ</span>' : '<span class="badge bg-ok" style="font-size:12px"><i class="fa fa-check-circle"></i> Có mặt</span>';
+
                         clsHtml += `<tr>
                                         <td>${idx + 1}</td>
                                         <td><img src="${ava}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #ddd; box-shadow:0 2px 4px rgba(0,0,0,0.1);"></td>
-                                        <td style="font-family:monospace;">${s.id}</td>
+                                        <td style="font-family:monospace; color:#888">${s.id}</td>
                                         <td style="text-align:center;"><b>${s.name}</b></td>
+                                        <td>${statusBadge}</td>
                                     </tr>`; 
                     }); 
                     c.innerHTML = clsHtml + `</tbody></table></div></div>`; 
@@ -472,7 +487,7 @@
                 else if(page === 'schedule') { const canEditTkb = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let optTkb = ''; DB.scheduleList.forEach(s => optTkb += `<option value="${s}">${s}</option>`); c.innerHTML = `<div class="flex-control"><h2>📅 Thời Khóa Biểu</h2><select id="tkbSelect" onchange="Features.loadScheduleView()" style="flex:1">${optTkb}</select>${canEditTkb ? `<button class="btn btn-green" onclick="Features.addTKBVersion()">+ Thêm Giai đoạn</button>` : ''}</div><div class="card" id="tkbContainer"></div>${canEditTkb ? `<button class="btn" style="margin-top:10px" id="btnSaveTKB" onclick="Features.saveSchedule()"><i class="fa fa-save"></i> Lưu Thời Khóa Biểu này</button>` : ''}`; Features.loadScheduleView(); }
                 else if(page === 'form') { c.innerHTML = `<div class="card"><div class="flex-control" style="justify-content:space-between"><h2>📝 Soạn Văn Bản</h2><select id="fType" onchange="Features.renderFormPaper()" style="width:200px"><option value="nghi">Đơn xin nghỉ học</option><option value="tuongtrinh">Bản tường trình</option><option value="camket">Bản cam kết</option></select></div><div id="paperArea" style="background:#ccc; padding:20px;"></div><button class="btn" id="btnSendForm" style="margin-top:20px; width:100%" onclick="Features.sendForm()"><i class="fa fa-paper-plane"></i> GỬI ĐƠN NÀY LÊN GIÁO VIÊN</button></div>`; Features.renderFormPaper(); }
                 else if(page === 'mailbox') { const myReqs = DB.reqs.filter(r => r.sid === CURRENT_USER.u).reverse(); let mailHtml = `<h2>📬 Hộp Thư Đơn Từ</h2><div class="card">`; if(myReqs.length === 0) mailHtml += `<p>Trống.</p>`; myReqs.forEach(r => { let badgeClass = r.st === 'Đã duyệt' ? 'bg-ok' : (r.st === 'Hủy' ? 'bg-no' : 'bg-wait'); mailHtml += `<div style="border-bottom:1px solid #eee; padding:15px 0"><div style="display:flex; justify-content:space-between"><b style="color:var(--pri)">${r.type}</b><span class="badge ${badgeClass}">${r.st}</span></div><div style="font-size:13px; color:#555; margin-top:5px">Ngày: ${r.date}</div><div style="background:#f9f9f9; padding:10px; margin-top:10px; border-left:3px solid var(--pri)"><b>💬 GV Nhắn:</b> ${r.reply || '<i>Đang chờ...</i>'}</div></div>`; }); c.innerHTML = mailHtml + `</div>`; }
-                else if(page === 'approve') { const allReqs = DB.reqs.filter(r => CURRENT_USER.r === 'admin' || r.cls === CURRENT_USER.c).reverse(); let tblHtml = `<h2>✅ Duyệt Đơn Từ HS</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Học sinh</th><th>Loại Đơn</th><th>Nội dung</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>`; if(allReqs.length === 0) tblHtml += `<tr><td colspan="5">Trống</td></tr>`; allReqs.forEach(r => { let badge = r.st === 'Đã duyệt' ? 'bg-ok' : (r.st === 'Hủy' ? 'bg-no' : 'bg-wait'); let actionBtn = (r.st === 'Chờ' && CURRENT_USER.r !== 'admin') ? `<button class="btn btn-sm btn-warning" onclick="Features.openReply('${r.id}')">Phản hồi</button>` : (r.st === 'Chờ' ? 'Chờ GV' : `Đã xử lý`); tblHtml += `<tr><td><b>${r.sname}</b><br><small>${r.sid}</small></td><td>${r.secure?'<i class="fa fa-lock" style="color:red"></i> ':''}${r.type}</td><td><b style="color:#666">${r.date}</b><br>${r.txt}</td><td><span class="badge ${badge}">${r.st}</span></td><td>${actionBtn}</td></tr>`; }); c.innerHTML = tblHtml + `</tbody></table></div></div>`; }
+                else if(page === 'approve') { const allReqs = DB.reqs.filter(r => CURRENT_USER.r === 'admin' || r.cls === CURRENT_USER.c).reverse(); let tblHtml = `<h2>✅ Duyệt Đơn Từ HS</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Học sinh</th><th>Loại Đơn</th><th>Nội dung</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>`; if(allReqs.length === 0) tblHtml += `<tr><td colspan="5">Trống</td></tr>`; allReqs.forEach(r => { let badge = r.st === 'Đã duyệt' ? 'bg-ok' : (r.st === 'Hủy' ? 'bg-no' : 'bg-wait'); let actionBtn = (r.st === 'Chờ' && CURRENT_USER.r !== 'admin') ? `<button class="btn btn-sm btn-blue" onclick="Features.openReply('${r.id}')"><i class="fa fa-reply"></i> Phản hồi</button>` : (r.st === 'Chờ' ? 'Chờ GV' : `<span style="color:#00b894; font-size:12px; font-weight:bold"><i class="fa fa-check"></i> Đã xử lý</span>`); tblHtml += `<tr><td><b>${r.sname}</b><br><small>${r.sid}</small></td><td>${r.secure?'<i class="fa fa-lock" style="color:red"></i> ':''}${r.type}</td><td><b style="color:#666">${r.date}</b><br>${r.txt}</td><td><span class="badge ${badge}">${r.st}</span></td><td>${actionBtn}</td></tr>`; }); c.innerHTML = tblHtml + `</tbody></table></div></div>`; }
                 else if(page === 'grading') { let optWeek = ''; DB.weekList.forEach(w => optWeek += `<option value="${w}">${w}</option>`); c.innerHTML = `<div class="flex-control"><h2>✍️ Chấm Điểm Thi Đua</h2><select id="wSelect" onchange="Features.loadWeekData()" style="flex:1">${optWeek}</select><button class="btn btn-green" onclick="Features.addWeekVersion()">+ Tuần Mới</button></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Ảnh</th><th>Mã HS</th><th>Họ Tên</th><th>Điểm</th><th>Xếp loại</th><th>Ghi chú</th></tr></thead><tbody id="gradeTable"></tbody></table></div></div><button class="btn" id="btnSaveGrade" style="margin-top:20px; width:100%" onclick="Features.saveGrades()"><i class="fa fa-save"></i> LƯU ĐIỂM</button>`; Features.loadWeekData(); }
                 else if(page === 'my_rank') { const myW = DB.weekly.filter(w => w.sid === CURRENT_USER.u); let rankHtml = `<h2>🏆 Điểm Thi Đua Cá Nhân</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Tuần</th><th>Điểm</th><th>Xếp loại</th><th>Nhận xét</th></tr></thead><tbody>`; if(myW.length === 0) rankHtml += `<tr><td colspan="4">Trống</td></tr>`; myW.forEach(w => { let b = w.rank === 'Tốt' ? 'bg-ok' : 'bg-wait'; rankHtml += `<tr><td><b>${w.week}</b></td><td style="color:var(--pri); font-weight:bold; font-size:16px">${w.score}</td><td><span class="badge ${b}">${w.rank}</span></td><td>${w.note}</td></tr>`; }); c.innerHTML = rankHtml + `</tbody></table></div></div>`; }
                 else if(page === 'settings') { c.innerHTML = `<h2>🔧 Cài đặt Hệ Thống</h2><div class="card"><label>Tên Lớp:</label><input id="set_class" value="${DB.config.className}"><label>Tên Trường:</label><input id="set_school" value="${DB.config.schoolName}"><label>Niên khóa:</label><input id="set_year" value="${DB.config.year}"><button class="btn btn-green" id="btnSaveSet" style="margin-top:20px; width:100%" onclick="Features.saveSettings()">LƯU</button></div>`; }
@@ -486,7 +501,6 @@
                 const oldP = document.getElementById('oldP').value;
                 const newP = document.getElementById('newP').value;
                 
-                // LÁ CHẮN BẢO VỆ SERVER: CHẶN MÃ ẢNH BASE64 HOẶC QUÁ DÀI
                 if (avaUrl.length > 500 || avaUrl.startsWith("data:image")) {
                     alert("❌ LỖI NGHIÊM TRỌNG: Bạn đang dán mã ảnh trực tiếp làm sập hệ thống.\nVui lòng chỉ copy LINK ẢNH (http...) từ Postimages hoặc Facebook nhé!");
                     return; 
@@ -528,12 +542,16 @@
                 const deadline = document.getElementById('hwDeadline').value;
                 const link = document.getElementById('hwLink').value;
                 if(!title || !deadline) return alert("Vui lòng nhập Tiêu đề và Hạn nộp!");
-                const btn = document.getElementById('btnCreateHW'); btn.disabled = true; btn.innerText = "Đang giao...";
+                const btn = document.getElementById('btnCreateHW'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang giao...';
                 UI.showLoading("Đang tải lên hệ thống...");
                 if(!DB.hw) DB.hw = [];
                 DB.hw.push({ id: 'hw_' + Date.now(), title: title, desc: desc, deadline: deadline, link: link, subs: [] });
                 await Network.saveData();
-                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n*Các em vào web để xem chi tiết!*`);
+                
+                // KÈM LINK WEB VÀO DISCORD
+                const webUrl = Utils.getWebLink();
+                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n\n👉 **[CLICK VÀO ĐÂY ĐỂ VÀO WEB TRƯỜNG LÀM BÀI](${webUrl})**`);
+                
                 UI.hideLoading(); btn.disabled = false; btn.innerText = "Giao Bài Ngay";
                 document.getElementById('createHwModal').style.display='none';
                 Router.nav('hw_manage');
@@ -564,7 +582,7 @@
                                 <input type="url" id="subLink" placeholder="https://...">
                                 <label>Ghi chú cho giáo viên:</label>
                                 <textarea id="subText" style="height:60px" placeholder="Em nộp bài ạ..."></textarea>
-                                <button class="btn btn-blue" style="width:100%; margin-top:10px" onclick="Features.submitHW('${hw.id}')"><i class="fa fa-upload"></i> XÁC NHẬN NỘP BÀI</button>`;
+                                <button class="btn btn-blue" id="btnSubmitHwAction" style="width:100%; margin-top:10px" onclick="Features.submitHW('${hw.id}')"><i class="fa fa-upload"></i> XÁC NHẬN NỘP BÀI</button>`;
                 }
                 content += `<button class="btn" style="background:#ddd; color:#333; width:100%; margin-top:10px" onclick="document.getElementById('viewHwModal').style.display='none'">Đóng</button>`;
                 document.getElementById('viewHwContent').innerHTML = content;
@@ -575,13 +593,19 @@
                 const link = document.getElementById('subLink').value;
                 const text = document.getElementById('subText').value;
                 if(!link && !text) return alert("Vui lòng nhập Link bài làm hoặc Ghi chú!");
+                
+                const btn = document.getElementById('btnSubmitHwAction');
+                btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang nộp bài...';
                 UI.showLoading("Đang gửi bài...");
+                
                 const hwIndex = DB.hw.findIndex(x => x.id === hwId);
                 if(hwIndex > -1) {
                     if(!DB.hw[hwIndex].subs) DB.hw[hwIndex].subs = [];
                     DB.hw[hwIndex].subs.push({ sid: CURRENT_USER.u, sname: CURRENT_USER.n, link: link, text: text, time: new Date().toISOString(), grade: '', note: '' });
                     await Network.saveData();
-                    await Network.sendToDiscord(false, "📩 CÓ BÀI NỘP MỚI", `Học sinh **${CURRENT_USER.n}** vừa nộp bài: *${DB.hw[hwIndex].title}*`);
+                    
+                    const webUrl = Utils.getWebLink();
+                    await Network.sendToDiscord(false, "📩 CÓ BÀI NỘP MỚI", `Học sinh **${CURRENT_USER.n}** vừa nộp bài: *${DB.hw[hwIndex].title}*\n\n👉 **[CLICK VÀO ĐÂY ĐỂ VÀO WEB CHẤM BÀI](${webUrl})**`);
                 }
                 UI.hideLoading();
                 document.getElementById('viewHwModal').style.display='none';
@@ -616,7 +640,7 @@
                         </div>`;
                     });
                 }
-                content += `</div><div style="display:flex; gap:10px; margin-top:15px"><button class="btn" style="background:#ddd; color:#333; flex:1" onclick="document.getElementById('viewHwModal').style.display='none'">Đóng</button>${hw.subs && hw.subs.length > 0 ? `<button class="btn btn-green" style="flex:2" onclick="Features.saveHwGrades('${hw.id}')"><i class="fa fa-save"></i> Lưu Điểm Chấm</button>` : ''}</div>`;
+                content += `</div><div style="display:flex; gap:10px; margin-top:15px"><button class="btn" style="background:#ddd; color:#333; flex:1" onclick="document.getElementById('viewHwModal').style.display='none'">Đóng</button>${hw.subs && hw.subs.length > 0 ? `<button id="btnSaveHwGrades" class="btn btn-green" style="flex:2" onclick="Features.saveHwGrades('${hw.id}')"><i class="fa fa-save"></i> Lưu Điểm Chấm</button>` : ''}</div>`;
                 document.getElementById('viewHwContent').innerHTML = content;
                 document.getElementById('viewHwModal').style.display = 'flex';
             },
@@ -624,6 +648,8 @@
             saveHwGrades: async (hwId) => {
                 const hwIndex = DB.hw.findIndex(x => x.id === hwId);
                 if(hwIndex === -1) return;
+                const btn = document.getElementById('btnSaveHwGrades');
+                btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...';
                 UI.showLoading("Đang lưu điểm bài tập...");
                 DB.hw[hwIndex].subs.forEach(sub => {
                     const g = document.getElementById(`g_${hwId}_${sub.sid}`).value;
@@ -636,20 +662,91 @@
                 alert("Đã lưu điểm bài tập!"); Router.nav('hw_manage');
             },
 
-            /* --- CÁC HÀM CŨ GIỮ NGUYÊN (Schedule, Form, Đơn từ, Điểm tuần...) --- */
+            /* --- CÁC HÀM CŨ (CÓ CẬP NHẬT GIAO DIỆN & DISCORD) --- */
             addWeekVersion: async () => { const n = prompt("Tên tuần mới:"); if(n && !DB.weekList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.weekList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('grading'); } },
             addTKBVersion: async () => { const n = prompt("Tên TKB mới:"); if(n && !DB.scheduleList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.scheduleList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('schedule'); } },
             loadScheduleView: () => { const ver = document.getElementById('tkbSelect').value; const canEdit = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let html = `<div class="table-wrap"><table><thead><tr><th>Tiết</th><th>Thứ 2</th><th>Thứ 3</th><th>Thứ 4</th><th>Thứ 5</th><th>Thứ 6</th><th>Thứ 7</th></tr></thead><tbody>`; for(let i=1; i<=5; i++) { html += `<tr><td style="font-weight:bold; background:#f9f9f9">Tiết ${i}</td>`; for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; const val = (DB.schedule && DB.schedule[key]) ? DB.schedule[key] : ''; if(canEdit) html += `<td><input class="tkb-input" id="${key}" value="${val}" placeholder="..."></td>`; else html += `<td>${val || '-'}</td>`; } html += `</tr>`; } html += `</tbody></table></div>`; document.getElementById('tkbContainer').innerHTML = html; },
-            saveSchedule: async () => { UI.showLoading("Đang lưu..."); const ver = document.getElementById('tkbSelect').value; for(let i=1; i<=5; i++) { for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; DB.schedule[key] = document.getElementById(key).value; } } await Network.saveData(); UI.hideLoading(); alert("Đã lưu TKB!"); },
+            saveSchedule: async () => { const btn = document.getElementById('btnSaveTKB'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...'; UI.showLoading("Đang lưu..."); const ver = document.getElementById('tkbSelect').value; for(let i=1; i<=5; i++) { for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; DB.schedule[key] = document.getElementById(key).value; } } await Network.saveData(); UI.hideLoading(); btn.disabled = false; btn.innerHTML = '<i class="fa fa-save"></i> Lưu Thời Khóa Biểu này'; alert("Đã lưu TKB!"); },
             changePassByAdmin: async (uid, uname) => { const newP = prompt(`Mật khẩu mới cho [${uname}]:`); if(!newP) return; UI.showLoading(`Đang xử lý...`); const u = DB.users.find(x => x.u === uid); if(u) { u.p = newP; await Network.saveData(); } UI.hideLoading(); alert("Đổi thành công!"); Router.nav('accounts'); },
-            saveSettings: async () => { UI.showLoading("Đang lưu..."); DB.config.className = document.getElementById('set_class').value; DB.config.schoolName = document.getElementById('set_school').value; DB.config.year = document.getElementById('set_year').value; await Network.saveData(); UI.updateConfigText(); UI.hideLoading(); alert("Thành công!"); },
+            saveSettings: async () => { const btn = document.getElementById('btnSaveSet'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...'; UI.showLoading("Đang lưu..."); DB.config.className = document.getElementById('set_class').value; DB.config.schoolName = document.getElementById('set_school').value; DB.config.year = document.getElementById('set_year').value; await Network.saveData(); UI.updateConfigText(); UI.hideLoading(); btn.disabled = false; btn.innerHTML = 'LƯU'; alert("Thành công!"); },
+            
             renderFormPaper: () => { const t = document.getElementById('fType').value; const a = document.getElementById('paperArea'); const header = `<div class="legal-header"><div class="legal-nation">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class="legal-motto">Độc lập - Tự do - Hạnh phúc</div></div>`; window.updateFooterDate = function(el) { const d = new Date(el.value); if(!isNaN(d.getTime())) { document.getElementById('footerDate').innerText = `Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`; } }; let body = ''; if(t === 'nghi') { body = `<div class="legal-title">ĐƠN XIN NGHỈ HỌC</div><p>Kính gửi: GVCN ${DB.config.className}</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Xin nghỉ từ: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Lý do: <input id="fTxt" class="legal-input" style="width:70%" placeholder="..."></p>`; } else if(t === 'tuongtrinh') { body = `<div class="legal-title">BẢN TƯỜNG TRÌNH</div><p>Kính gửi: GVCN</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Nội dung: <input id="fTxt" class="legal-input" style="width:100%; margin-top:10px"></p>`; } else { body = `<div class="legal-title">BẢN CAM KẾT</div><p>Kính gửi: GVCN</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Cam kết: <input id="fTxt" class="legal-input" style="width:100%; margin-top:10px"></p>`; } a.innerHTML = `<div class="legal-paper">${header}${body}<br><br><div style="text-align:right"><i id="footerDate">Ngày... tháng... năm...</i><br><b>Người làm đơn</b><br><br><br><br>${CURRENT_USER.n}</div></div>`; },
-            sendForm: async () => { const txt = document.getElementById('fTxt').value; const dateVal = document.getElementById('datePicker').value; if(!txt || !dateVal) return alert('Thiếu thông tin!'); UI.showLoading("Đang gửi..."); const d = new Date(dateVal); const fmtDate = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; const tVal = document.getElementById('fType').value; const sel = document.getElementById('fType'); const tText = sel.options[sel.selectedIndex].text; const isSecure = (tVal !== 'nghi'); DB.reqs.push({ id: Date.now(), sid: CURRENT_USER.u, sname: CURRENT_USER.n, cls: CURRENT_USER.c, type: tText, txt: txt, st: 'Chờ', reply: '', secure: isSecure, date: fmtDate }); await Network.saveData(); await Network.sendToDiscord(isSecure, isSecure ? "🔒 VĂN BẢN BẢO MẬT" : "📝 ĐƠN XIN NGHỈ", `**Học sinh:** ${CURRENT_USER.n}\n**Lớp:** ${DB.config.className}\n**Nội dung:** ${txt}`); UI.hideLoading(); alert('Thành công!'); Router.nav('mailbox'); },
-            openReply: (id) => { currentReplyId = id; selectedStatus = null; document.getElementById('replyModal').style.display = 'flex'; document.getElementById('replyTxt').value = ''; document.getElementById('statusPreview').innerText='Chưa chọn'; document.getElementById('statusPreview').className='badge bg-wait'; },
-            selectStatus: (st) => { selectedStatus = st; const el = document.getElementById('statusPreview'); el.innerText = st === 'Đã duyệt' ? 'Sẽ Duyệt' : 'Từ Chối'; el.className = st === 'Đã duyệt' ? 'badge bg-ok' : 'badge bg-no'; },
-            submitReplyFinal: async () => { const note = document.getElementById('replyTxt').value; if (!selectedStatus) return alert("Chọn trạng thái (Duyệt/Từ chối)!"); const r = DB.reqs.find(x => x.id == currentReplyId); if(r) { UI.showLoading("Đang xử lý..."); r.st = selectedStatus; r.reply = note; await Network.saveData(); await Network.sendToDiscord(r.secure, selectedStatus === 'Đã duyệt' ? "✅ ĐÃ DUYỆT ĐƠN" : "❌ TỪ CHỐI ĐƠN", `GV đã trả lời.\n**Học sinh:** ${r.sname}\n**Lời nhắn:** ${note}`); UI.hideLoading(); document.getElementById('replyModal').style.display='none'; Router.nav('approve'); } },
+            
+            sendForm: async () => { 
+                const txt = document.getElementById('fTxt').value; const dateVal = document.getElementById('datePicker').value; 
+                if(!txt || !dateVal) return alert('Thiếu thông tin!'); 
+                const btn = document.getElementById('btnSendForm');
+                btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang Gửi...';
+                UI.showLoading("Đang gửi..."); 
+                const d = new Date(dateVal); const fmtDate = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; 
+                const tVal = document.getElementById('fType').value; const sel = document.getElementById('fType'); const tText = sel.options[sel.selectedIndex].text; const isSecure = (tVal !== 'nghi'); 
+                
+                DB.reqs.push({ id: Date.now(), sid: CURRENT_USER.u, sname: CURRENT_USER.n, cls: CURRENT_USER.c, type: tText, txt: txt, st: 'Chờ', reply: '', secure: isSecure, date: fmtDate }); 
+                await Network.saveData(); 
+                
+                // KÈM LINK WEB VÀO DISCORD
+                const webUrl = Utils.getWebLink();
+                await Network.sendToDiscord(isSecure, isSecure ? "🔒 VĂN BẢN BẢO MẬT" : "📝 ĐƠN XIN NGHỈ", `**Học sinh:** ${CURRENT_USER.n}\n**Lớp:** ${DB.config.className}\n**Nội dung:** ${txt}\n\n👉 **[CLICK VÀO ĐÂY ĐỂ VÀO WEB DUYỆT ĐƠN](${webUrl})**`); 
+                
+                UI.hideLoading(); 
+                btn.disabled = false; btn.innerHTML = '<i class="fa fa-paper-plane"></i> GỬI ĐƠN NÀY LÊN GIÁO VIÊN';
+                alert('Thành công!'); Router.nav('mailbox'); 
+            },
+            
+            openReply: (id) => { 
+                currentReplyId = id; selectedStatus = null; 
+                document.getElementById('replyModal').style.display = 'flex'; 
+                document.getElementById('replyTxt').value = ''; 
+                document.getElementById('statusPreview').innerText='Chưa chọn'; 
+                document.getElementById('statusPreview').className='badge bg-wait'; 
+                
+                // Reset giao diện 2 nút chọn
+                const bA = document.getElementById('btnApprove'); const bR = document.getElementById('btnReject');
+                if(bA && bR) { bA.style.opacity = "1"; bA.style.border = "none"; bR.style.opacity = "1"; bR.style.border = "none"; }
+            },
+            
+            // CẬP NHẬT: Giao diện bấm Nút Duyệt/Từ Chối
+            selectStatus: (st) => { 
+                selectedStatus = st; 
+                const el = document.getElementById('statusPreview'); 
+                el.innerText = st === 'Đã duyệt' ? 'Sẽ Duyệt' : 'Từ Chối'; 
+                el.className = st === 'Đã duyệt' ? 'badge bg-ok' : 'badge bg-no'; 
+                
+                const bA = document.getElementById('btnApprove'); const bR = document.getElementById('btnReject');
+                if(st === 'Đã duyệt') {
+                    bA.style.border = "3px solid #333"; bA.style.opacity = "1";
+                    bR.style.border = "none"; bR.style.opacity = "0.4";
+                } else {
+                    bR.style.border = "3px solid #333"; bR.style.opacity = "1";
+                    bA.style.border = "none"; bA.style.opacity = "0.4";
+                }
+            },
+            
+            submitReplyFinal: async () => { 
+                const note = document.getElementById('replyTxt').value; 
+                if (!selectedStatus) return alert("Vui lòng Bấm Chọn trạng thái (Sẽ Duyệt / Từ chối) trước!"); 
+                const r = DB.reqs.find(x => x.id == currentReplyId); 
+                if(r) { 
+                    // CHẶN BẤM NHIỀU LẦN VÀ HIỆN LOADING
+                    const btnSubmit = document.getElementById('btnReplySubmit');
+                    btnSubmit.disabled = true;
+                    btnSubmit.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang xử lý...';
+                    UI.showLoading("Đang ghi nhận..."); 
+                    
+                    r.st = selectedStatus; r.reply = note; 
+                    await Network.saveData(); 
+                    await Network.sendToDiscord(r.secure, selectedStatus === 'Đã duyệt' ? "✅ ĐÃ DUYỆT ĐƠN" : "❌ TỪ CHỐI ĐƠN", `GV đã trả lời.\n**Học sinh:** ${r.sname}\n**Lời nhắn:** ${note}`); 
+                    
+                    UI.hideLoading(); 
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fa fa-paper-plane"></i> Gửi Phản Hồi';
+                    document.getElementById('replyModal').style.display='none'; 
+                    Router.nav('approve'); 
+                } 
+            },
+            
             loadWeekData: () => { const w = document.getElementById('wSelect').value; const tb = document.getElementById('gradeTable'); tb.innerHTML = ''; STUDENT_LIST.forEach(s => { const old = DB.weekly.find(x => x.week == w && x.sid == s.id) || {}; const ava = DB.avatars[s.id] || 'https://i.imgur.com/6VBx3io.png'; tb.innerHTML += `<tr><td><img src="${ava}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #ddd;"></td><td style="font-family:monospace;">${s.id}</td><td><b>${s.name}</b></td><td><input type="number" id="s_${s.id}" value="${old.score||100}" style="width:60px;"></td><td><select id="r_${s.id}"><option ${old.rank=='Tốt'?'selected':''}>Tốt</option><option ${old.rank=='Khá'?'selected':''}>Khá</option><option ${old.rank=='TB'?'selected':''}>TB</option></select></td><td><input type="text" id="n_${s.id}" value="${old.note||''}"></td></tr>`; }); },
-            saveGrades: async () => { UI.showLoading("Đang lưu..."); const w = document.getElementById('wSelect').value; STUDENT_LIST.forEach(s => { const idx = DB.weekly.findIndex(x => x.week == w && x.sid == s.id); if(idx > -1) DB.weekly.splice(idx, 1); DB.weekly.push({ week: w, sid: s.id, score: document.getElementById(`s_${s.id}`).value, rank: document.getElementById(`r_${s.id}`).value, note: document.getElementById(`n_${s.id}`).value }); }); await Network.saveData(); UI.hideLoading(); alert(`Đã lưu!`); }
+            saveGrades: async () => { const btn = document.getElementById('btnSaveGrade'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...'; UI.showLoading("Đang lưu..."); const w = document.getElementById('wSelect').value; STUDENT_LIST.forEach(s => { const idx = DB.weekly.findIndex(x => x.week == w && x.sid == s.id); if(idx > -1) DB.weekly.splice(idx, 1); DB.weekly.push({ week: w, sid: s.id, score: document.getElementById(`s_${s.id}`).value, rank: document.getElementById(`r_${s.id}`).value, note: document.getElementById(`n_${s.id}`).value }); }); await Network.saveData(); UI.hideLoading(); btn.disabled = false; btn.innerHTML = '<i class="fa fa-save"></i> LƯU ĐIỂM'; alert(`Đã lưu!`); }
         };
 
         // KÍCH HOẠT

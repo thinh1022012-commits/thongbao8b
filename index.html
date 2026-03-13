@@ -58,13 +58,14 @@
         .btn-warning { background: #f39c12; }
         .btn-green { background: #00b894; }
         .btn-blue { background: #0984e3; }
+        .btn-danger { background: #e74c3c; }
         
         .table-wrap { overflow-x: auto; }
         table { width:100%; border-collapse:collapse; margin-top:10px; min-width: 600px; }
         th { text-align:left; color:#777; font-size:12px; text-transform:uppercase; padding:10px; border-bottom:2px solid #eee; background: #f8f9fa; text-align: center;}
         td { padding:10px; border-bottom:1px solid #eee; vertical-align:middle; font-size: 13px; text-align: center;}
         .badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:bold; color:white; display: inline-block;}
-        .bg-ok { background:#00b894; } .bg-wait { background:#fdcb6e; color:#333; } .bg-no { background:#ff7675; }
+        .bg-ok { background:#00b894; } .bg-wait { background:#f39c12; color:#fff; } .bg-no { background:#e74c3c; }
 
         .legal-paper { background: #fff; padding: 40px 50px; border: 1px solid #ccc; font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.5; margin: 0 auto; max-width: 800px; box-shadow: 5px 5px 15px rgba(0,0,0,0.05); }
         .legal-header { text-align: center; margin-bottom: 20px; }
@@ -108,8 +109,7 @@
         <div id="overlay" onclick="UI.toggleMenu()"></div>
         
         <div class="sidebar" id="sidebar">
-            <div class="user-panel" id="userPanel">
-                </div>
+            <div class="user-panel" id="userPanel"></div>
             <div class="menu-scroll" id="menuArea" style="flex:1; overflow-y:auto; padding:10px;"></div>
             <div style="padding:15px; border-top:1px solid #eee">
                 <button class="btn btn-green" onclick="Network.syncData()" style="width:100%; margin-bottom:10px;" id="btnSync"><i class="fa fa-sync"></i> Đồng bộ dữ liệu</button>
@@ -129,11 +129,11 @@
     <div id="replyModal" class="modal">
         <div class="modal-box" style="max-width:500px">
             <h3 style="margin-top:0; color:var(--pri)">💬 Phản Hồi Đơn</h3>
-            <div style="margin-bottom: 15px; font-weight: bold;">Trạng thái: <span id="statusPreview" class="badge bg-wait">Chưa chọn</span></div>
+            <div style="margin-bottom: 15px; font-weight: bold;">Trạng thái: <span id="statusPreview" class="badge" style="background:#eee; color:#333">Chưa chọn</span></div>
             <textarea id="replyTxt" style="height:80px; margin-bottom:15px" placeholder="Nhập nội dung phản hồi (nếu có)..."></textarea>
             <div style="display:flex; gap:10px; margin-bottom:20px">
                 <button id="btnApprove" class="btn btn-sm btn-green" style="flex:1; transition:0.3s;" onclick="Features.selectStatus('Đã duyệt')"><i class="fa fa-check"></i> Chọn Sẽ Duyệt</button>
-                <button id="btnReject" class="btn btn-sm btn-warning" style="flex:1; transition:0.3s;" onclick="Features.selectStatus('Hủy')"><i class="fa fa-times"></i> Chọn Từ Chối</button>
+                <button id="btnReject" class="btn btn-sm btn-danger" style="flex:1; transition:0.3s;" onclick="Features.selectStatus('Hủy')"><i class="fa fa-times"></i> Chọn Từ Chối</button>
             </div>
             <div style="display:flex; gap:10px;">
                 <button class="btn" style="background:#ddd; color:#333; flex:1" onclick="document.getElementById('replyModal').style.display='none'">Đóng</button>
@@ -167,10 +167,13 @@
 
     <script>
         /* ==========================================================================
-           PHẦN 1: CẤU HÌNH API & DISCORD (ĐÃ ĐIỀN ĐỦ LINK CỦA BẠN)
+           PHẦN 1: CẤU HÌNH API & DISCORD
            ========================================================================== */
         const CONFIG = {
-            API_URL: "https://script.google.com/macros/s/AKfycbz5nIFpRMyvaDup5bwzRigkw7zr-n99mppGLY-u7QjLoZb_nv1GOErafeJAoZpU5jpn/exec", 
+            // 👇 BẠN HÃY DÁN LẠI LINK GOOGLE APPS SCRIPT CỦA BẠN VÀO ĐÂY 👇
+            API_URL: "DÁN_LINK_GOOGLE_SCRIPT_CỦA_BẠN_VÀO_ĐÂY", 
+            
+            // 2 LINK DISCORD ĐÃ TÍCH HỢP SẴN:
             WH_PUBLIC: "https://discord.com/api/webhooks/1456305070181449789/gySnBocRkplcH8UrQvWpnDkg_8472oeOUFCjgOh23NkaGKbMFd7_crtncR5CF44D9lk7",
             WH_PRIVATE: "https://discord.com/api/webhooks/1456659542699151598/j0LjBOW3wUnNN0p7lWeL5kvbfC4iITGuw5tZ47AWzVluPnsom1qrGGrKMRg3F1cIRRrY"
         };
@@ -196,6 +199,7 @@
 
         let DB = { 
             reqs: [], weekly: [], users: [], schedule: {}, hw: [], avatars: {}, 
+            attendance: {}, // Biến mới lưu lịch sử điểm danh
             weekList: ["Tuần 1"], scheduleList: ["Học Kỳ 1"],
             config: { className: "LỚP 8B", schoolName: "TRƯỜNG THCS NGUYỄN VIẾT XUÂN", year: "2025 - 2026" } 
         };
@@ -224,7 +228,6 @@
                 const d = new Date(isoString);
                 return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} - ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
             },
-            // Hàm lấy link trang web hiện tại (để gắn vào Discord)
             getWebLink: () => {
                 return window.location.href.split('#')[0].split('?')[0];
             }
@@ -278,6 +281,7 @@
                         if(!DB.schedule) DB.schedule = {};
                         if(!DB.hw) DB.hw = []; 
                         if(!DB.avatars) DB.avatars = {}; 
+                        if(!DB.attendance) DB.attendance = {}; // Thêm biến điểm danh
                     }
                     UI.updateConfigText();
                 } catch(e) { console.error("Lỗi", e); }
@@ -290,6 +294,7 @@
                 const btn = document.getElementById('btnSync'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
                 UI.showLoading("Đang đồng bộ...");
                 await Network.loadData();
+                Features.checkDeadlines(); // Quét lại bài tập
                 UI.hideLoading(); btn.disabled = false; btn.innerHTML = '<i class="fa fa-sync"></i> Đồng bộ dữ liệu';
                 const activeItem = document.querySelector('.menu-item.active'); if(activeItem) activeItem.click();
             },
@@ -323,6 +328,7 @@
                 if (f) {
                     CURRENT_USER = f; document.getElementById('loginWrap').style.display = 'none'; document.getElementById('appWrap').style.display = 'flex';
                     UI.updateConfigText(); Router.renderMenu(); Router.nav('rules');
+                    Features.checkDeadlines(); // Quét hạn nộp bài
                 } else { alert('Sai thông tin!'); }
             }
         };
@@ -348,7 +354,7 @@
                              <div class="menu-item" onclick="Router.nav('grading')"><i class="fa fa-edit"></i> Chấm Điểm Tuần</div>
                              <div class="menu-cat">Quản lý Khác</div>
                              <div class="menu-item" onclick="Router.nav('approve')"><i class="fa fa-check-circle"></i> Duyệt Đơn Từ</div>
-                             <div class="menu-item" onclick="Router.nav('class_list')"><i class="fa fa-list"></i> Danh Sách Lớp</div>
+                             <div class="menu-item" onclick="Router.nav('class_list')"><i class="fa fa-list"></i> Điểm Danh Lớp</div>
                              <div class="menu-item" onclick="Router.nav('accounts')"><i class="fa fa-users-cog"></i> Cấp MK Học sinh</div>
                              <div class="menu-item" onclick="Router.nav('profile')"><i class="fa fa-user-circle"></i> Cá nhân</div>`;
                 } else if (role === 'admin') {
@@ -391,8 +397,9 @@
                                 ${h.link ? `<a href="${h.link}" target="_blank" style="color:var(--pri); font-weight:bold"><i class="fa fa-link"></i> Link tài liệu GV</a>` : ''}
                             </div>
                             <div class="hw-desc">${h.desc || 'Không có ghi chú thêm.'}</div>
-                            <button class="btn btn-sm ${mySub ? 'btn-blue' : (isOverdue ? 'btn-warning':'')}" onclick="Features.openHwSubmit('${h.id}')">
-                                ${mySub ? '<i class="fa fa-eye"></i> Xem bài đã nộp' : (isOverdue ? '<i class="fa fa-exclamation-triangle"></i> Nộp trễ' : '<i class="fa fa-upload"></i> Nộp bài ngay')}
+                            
+                            <button class="btn btn-sm ${mySub ? 'btn-blue' : (isOverdue ? 'btn-danger':'')}" onclick="Features.openHwSubmit('${h.id}')">
+                                ${mySub ? '<i class="fa fa-eye"></i> Xem bài đã nộp' : (isOverdue ? '<i class="fa fa-lock"></i> Đã Khóa (Hết hạn)' : '<i class="fa fa-upload"></i> Nộp bài ngay')}
                             </button>
                         </div>`;
                     });
@@ -406,19 +413,66 @@
                                  </div>`;
                     if(!DB.hw || DB.hw.length === 0) mHtml += `<div class="card">Chưa giao bài tập nào.</div>`;
                     
+                    const now = new Date();
                     (DB.hw || []).reverse().forEach(h => {
                         const totalSubs = h.subs ? h.subs.length : 0;
+                        const isOverdue = new Date(h.deadline) < now;
                         mHtml += `
                         <div class="card hw-item">
-                            <div class="hw-title">${h.title}</div>
+                            <div style="display:flex; justify-content:space-between">
+                                <div class="hw-title">${h.title}</div>
+                                ${isOverdue ? '<span class="badge bg-no">Đã chốt sổ</span>' : '<span class="badge bg-ok">Đang nhận bài</span>'}
+                            </div>
                             <div class="hw-meta">
-                                <span><i class="fa fa-clock"></i> Hạn: <b>${Utils.formatDate(h.deadline)}</b></span>
+                                <span><i class="fa fa-clock"></i> Hạn: <b class="${isOverdue ? 'text-danger':''}">${Utils.formatDate(h.deadline)}</b></span>
                                 <span><i class="fa fa-users"></i> Đã nộp: <b style="color:var(--pri)">${totalSubs}/${STUDENT_LIST.length}</b></span>
                             </div>
                             <button class="btn btn-sm btn-blue" onclick="Features.openHwGrade('${h.id}')"><i class="fa fa-edit"></i> Xem & Chấm Bài</button>
                         </div>`;
                     });
                     c.innerHTML = mHtml;
+                }
+
+                // CẬP NHẬT: TÍNH NĂNG ĐIỂM DANH LỚP
+                else if(page === 'class_list') { 
+                    let clsHtml = `<h2>👥 Điểm Danh Hôm Nay</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>STT</th><th>Ảnh</th><th>Mã ID</th><th>Họ và Tên</th><th>Trạng thái (Hôm nay)</th><th>Thao tác (GV)</th></tr></thead><tbody>`; 
+                    
+                    const todayObj = new Date();
+                    const todayStr = `${todayObj.getDate()}/${todayObj.getMonth()+1}/${todayObj.getFullYear()}`;
+                    const canEdit = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin');
+
+                    STUDENT_LIST.forEach((s, idx) => { 
+                        const ava = DB.avatars[s.id] || 'https://i.imgur.com/6VBx3io.png';
+                        
+                        // 1. Kiểm tra đơn xin nghỉ học có phép
+                        const isExcused = DB.reqs.some(r => r.sid === s.id && r.type === "Đơn xin nghỉ học" && r.st === "Đã duyệt" && r.date === todayStr);
+                        // 2. Kiểm tra vắng không phép (GV tự đánh dấu)
+                        const isUnexcused = DB.attendance && DB.attendance[todayStr] && DB.attendance[todayStr].includes(s.id);
+
+                        let statusBadge = '';
+                        let actionBtn = '';
+
+                        if (isExcused) {
+                            statusBadge = '<span class="badge bg-wait"><i class="fa fa-envelope"></i> Vắng có phép</span>';
+                            if (canEdit) actionBtn = '<small style="color:#888; font-style:italic">Auto từ đơn</small>';
+                        } else if (isUnexcused) {
+                            statusBadge = '<span class="badge bg-no"><i class="fa fa-times-circle"></i> Vắng KHÔNG phép</span>';
+                            if (canEdit) actionBtn = `<button class="btn btn-sm btn-green" onclick="Features.toggleAttendance('${s.id}', '${todayStr}')">Hủy vắng</button>`;
+                        } else {
+                            statusBadge = '<span class="badge bg-ok"><i class="fa fa-check-circle"></i> Có mặt</span>';
+                            if (canEdit) actionBtn = `<button class="btn btn-sm btn-danger" onclick="Features.toggleAttendance('${s.id}', '${todayStr}')">Báo vắng</button>`;
+                        }
+
+                        clsHtml += `<tr>
+                                        <td>${idx + 1}</td>
+                                        <td><img src="${ava}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #ddd; box-shadow:0 2px 4px rgba(0,0,0,0.1);"></td>
+                                        <td style="font-family:monospace; color:#888">${s.id}</td>
+                                        <td style="text-align:center;"><b>${s.name}</b></td>
+                                        <td>${statusBadge}</td>
+                                        ${canEdit ? `<td>${actionBtn}</td>` : '<td>-</td>'}
+                                    </tr>`; 
+                    }); 
+                    c.innerHTML = clsHtml + `</tbody></table></div></div>`; 
                 }
 
                 else if(page === 'profile') {
@@ -430,7 +484,7 @@
                             <input type="text" value="${CURRENT_USER.u}" disabled style="background:#eee; font-family:monospace">
                             
                             <label style="font-weight:bold; margin-top:10px; display:block">Link Ảnh Đại Diện / Ảnh bìa:</label>
-                            <div style="font-size:12px; color:#888; margin-bottom:5px">⚠️ Hãy tải ảnh lên trang <a href="https://postimages.org/" target="_blank" style="color:var(--pri)">Postimages</a>, copy "Direct link" và dán vào đây. Không dán ảnh trực tiếp từ máy để tránh lỗi!</div>
+                            <div style="font-size:12px; color:#888; margin-bottom:5px">⚠️ Hãy tải ảnh lên trang <a href="https://postimages.org/" target="_blank" style="color:var(--pri)">Postimages</a>, copy "Direct link" và dán vào đây. Không dán ảnh trực tiếp!</div>
                             <input type="url" id="inpAvatar" placeholder="https://..." value="${avatarUrl}">
                             
                             <hr style="border:0; border-top:1px solid #eee; margin:20px 0">
@@ -440,31 +494,6 @@
                             
                             <button class="btn" id="btnUpdateProfile" style="margin-top:15px; width:100%" onclick="Features.updateProfile()"><i class="fa fa-save"></i> LƯU THAY ĐỔI</button>
                         </div>`;
-                }
-
-                // CẬP NHẬT: Trạng thái Hôm nay trên Danh sách lớp
-                else if(page === 'class_list') { 
-                    let clsHtml = `<h2>👥 Danh Sách ${DB.config.className}</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>STT</th><th>Ảnh</th><th>Mã ID</th><th>Họ và Tên</th><th>Trạng thái (Hôm nay)</th></tr></thead><tbody>`; 
-                    
-                    // Lấy ngày hôm nay định dạng DD/MM/YYYY để so sánh
-                    const todayObj = new Date();
-                    const todayStr = `${todayObj.getDate()}/${todayObj.getMonth()+1}/${todayObj.getFullYear()}`;
-
-                    STUDENT_LIST.forEach((s, idx) => { 
-                        const ava = DB.avatars[s.id] || 'https://i.imgur.com/6VBx3io.png';
-                        // Kiểm tra xem HS có đơn xin nghỉ nào Đã duyệt cho ngày hôm nay không
-                        const isAbsent = DB.reqs.some(r => r.sid === s.id && r.type === "Đơn xin nghỉ học" && r.st === "Đã duyệt" && r.date === todayStr);
-                        const statusBadge = isAbsent ? '<span class="badge bg-no" style="font-size:12px"><i class="fa fa-bed"></i> Có đơn nghỉ</span>' : '<span class="badge bg-ok" style="font-size:12px"><i class="fa fa-check-circle"></i> Có mặt</span>';
-
-                        clsHtml += `<tr>
-                                        <td>${idx + 1}</td>
-                                        <td><img src="${ava}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #ddd; box-shadow:0 2px 4px rgba(0,0,0,0.1);"></td>
-                                        <td style="font-family:monospace; color:#888">${s.id}</td>
-                                        <td style="text-align:center;"><b>${s.name}</b></td>
-                                        <td>${statusBadge}</td>
-                                    </tr>`; 
-                    }); 
-                    c.innerHTML = clsHtml + `</tbody></table></div></div>`; 
                 }
 
                 else if(page === 'accounts') { 
@@ -495,7 +524,25 @@
         };
 
         const Features = {
-            /* --- BẢO VỆ CHỐNG SẬP SERVER & CẬP NHẬT PROFILE --- */
+            /* --- TÍNH NĂNG: GIÁO VIÊN BẤM ĐIỂM DANH THỦ CÔNG --- */
+            toggleAttendance: async (sId, dateStr) => {
+                UI.showLoading("Đang cập nhật điểm danh...");
+                if (!DB.attendance) DB.attendance = {};
+                if (!DB.attendance[dateStr]) DB.attendance[dateStr] = [];
+
+                const idx = DB.attendance[dateStr].indexOf(sId);
+                if (idx > -1) {
+                    DB.attendance[dateStr].splice(idx, 1); // Gỡ báo vắng -> Thành có mặt
+                } else {
+                    DB.attendance[dateStr].push(sId); // Báo vắng không phép
+                }
+
+                await Network.saveData();
+                UI.hideLoading();
+                Router.nav('class_list'); // Refresh lại giao diện ngay
+            },
+
+            /* --- BẢO VỆ CHỐNG SẬP SERVER --- */
             updateProfile: async () => {
                 const avaUrl = document.getElementById('inpAvatar').value;
                 const oldP = document.getElementById('oldP').value;
@@ -507,7 +554,6 @@
                 }
 
                 let needSave = false;
-
                 if (oldP || newP) {
                     if(oldP !== CURRENT_USER.p) return alert("Mật khẩu cũ không đúng!");
                     if(!newP) return alert("Chưa nhập mật khẩu mới!");
@@ -535,6 +581,36 @@
                 }
             },
 
+            /* --- TÍNH NĂNG TỰ ĐỘNG KHÓA VÀ GỬI BÁO CÁO NHỮNG NGƯỜI CHƯA NỘP LÊN NHÓM --- */
+            checkDeadlines: async () => {
+                if (!CURRENT_USER || (CURRENT_USER.r !== 'teacher' && CURRENT_USER.r !== 'admin')) return;
+                if (!DB.hw || DB.hw.length === 0) return;
+
+                let needSave = false;
+                const now = new Date();
+
+                for (let i = 0; i < DB.hw.length; i++) {
+                    let h = DB.hw[i];
+                    if (new Date(h.deadline) < now && !h.reportSent) {
+                        h.reportSent = true; 
+                        needSave = true;
+
+                        const submittedIds = h.subs ? h.subs.map(x => x.sid) : [];
+                        const missing = STUDENT_LIST.filter(s => !submittedIds.includes(s.id));
+                        
+                        let missingText = missing.length > 0 
+                            ? missing.map(m => `- ${m.name}`).join('\n') 
+                            : "🎉 Tuyệt vời! Tất cả học sinh đã nộp đủ.";
+
+                        const webUrl = Utils.getWebLink();
+                        const desc = `Bài tập **${h.title}** đã hết hạn nộp.\nHệ thống đã tự động **KHÓA** nhận bài.\n\n**📊 THỐNG KÊ:**\n- Đã nộp: ${submittedIds.length}/${STUDENT_LIST.length}\n- Chưa nộp: ${missing.length}\n\n**❌ DANH SÁCH CHƯA NỘP:**\n${missingText}\n\n👉 **[GIÁO VIÊN BẤM VÀO ĐÂY ĐỂ CHẤM BÀI](${webUrl})**`;
+                        
+                        await Network.sendToDiscord(false, "⏰ KHÓA BÀI & BÁO CÁO NỘP BÀI", desc);
+                    }
+                }
+                if (needSave) await Network.saveData(); 
+            },
+
             /* --- BÀI TẬP VỀ NHÀ --- */
             submitNewHW: async () => {
                 const title = document.getElementById('hwTitle').value;
@@ -545,12 +621,11 @@
                 const btn = document.getElementById('btnCreateHW'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang giao...';
                 UI.showLoading("Đang tải lên hệ thống...");
                 if(!DB.hw) DB.hw = [];
-                DB.hw.push({ id: 'hw_' + Date.now(), title: title, desc: desc, deadline: deadline, link: link, subs: [] });
+                DB.hw.push({ id: 'hw_' + Date.now(), title: title, desc: desc, deadline: deadline, link: link, subs: [], reportSent: false });
                 await Network.saveData();
                 
-                // KÈM LINK WEB VÀO DISCORD
                 const webUrl = Utils.getWebLink();
-                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n\n👉 **[CLICK VÀO ĐÂY ĐỂ VÀO WEB TRƯỜNG LÀM BÀI](${webUrl})**`);
+                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n\n👉 **[HỌC SINH CLICK VÀO ĐÂY ĐỂ NỘP BÀI](${webUrl})**`);
                 
                 UI.hideLoading(); btn.disabled = false; btn.innerText = "Giao Bài Ngay";
                 document.getElementById('createHwModal').style.display='none';
@@ -563,6 +638,7 @@
                 const mySub = hw.subs ? hw.subs.find(x => x.sid === CURRENT_USER.u) : null;
                 const isOverdue = new Date(hw.deadline) < new Date();
                 let content = `<h3 style="margin-top:0; color:var(--pri)">Nộp bài: ${hw.title}</h3>`;
+                
                 if(mySub) {
                     content += `<div style="background:#eef2ff; padding:15px; border-radius:8px; margin-bottom:15px">
                                     <b><i class="fa fa-check-circle" style="color:var(--pri)"></i> Em đã nộp bài.</b><br>
@@ -577,14 +653,20 @@
                                     </div>`;
                     }
                 } else {
-                    if(isOverdue) content += `<div style="color:red; font-weight:bold; margin-bottom:10px">⚠️ Bài tập đã quá hạn nộp! (Trạng thái nộp sẽ bị tính là Nộp Trễ)</div>`;
-                    content += `<label>Link bài làm (Dán link Google Drive ảnh/file của em):</label>
-                                <input type="url" id="subLink" placeholder="https://...">
-                                <label>Ghi chú cho giáo viên:</label>
-                                <textarea id="subText" style="height:60px" placeholder="Em nộp bài ạ..."></textarea>
-                                <button class="btn btn-blue" id="btnSubmitHwAction" style="width:100%; margin-top:10px" onclick="Features.submitHW('${hw.id}')"><i class="fa fa-upload"></i> XÁC NHẬN NỘP BÀI</button>`;
+                    if(isOverdue) {
+                        content += `<div style="color:#c0392b; background:#fadbd8; padding:15px; border-radius:8px; text-align:center; font-weight:bold; border: 1px solid #e74c3c;">
+                                        🚫 HỆ THỐNG ĐÃ KHÓA BÀI TẬP NÀY<br>
+                                        <small style="font-weight:normal;">Đã hết thời gian nộp bài. Em không thể nộp thêm.</small>
+                                    </div>`;
+                    } else {
+                        content += `<label>Link bài làm (Dán link Google Drive ảnh/file của em):</label>
+                                    <input type="url" id="subLink" placeholder="https://...">
+                                    <label>Ghi chú cho giáo viên:</label>
+                                    <textarea id="subText" style="height:60px" placeholder="Em nộp bài ạ..."></textarea>
+                                    <button class="btn btn-blue" id="btnSubmitHwAction" style="width:100%; margin-top:10px" onclick="Features.submitHW('${hw.id}')"><i class="fa fa-upload"></i> XÁC NHẬN NỘP BÀI</button>`;
+                    }
                 }
-                content += `<button class="btn" style="background:#ddd; color:#333; width:100%; margin-top:10px" onclick="document.getElementById('viewHwModal').style.display='none'">Đóng</button>`;
+                content += `<button class="btn" style="background:#ddd; color:#333; width:100%; margin-top:15px" onclick="document.getElementById('viewHwModal').style.display='none'">Đóng</button>`;
                 document.getElementById('viewHwContent').innerHTML = content;
                 document.getElementById('viewHwModal').style.display = 'flex';
             },
@@ -603,9 +685,6 @@
                     if(!DB.hw[hwIndex].subs) DB.hw[hwIndex].subs = [];
                     DB.hw[hwIndex].subs.push({ sid: CURRENT_USER.u, sname: CURRENT_USER.n, link: link, text: text, time: new Date().toISOString(), grade: '', note: '' });
                     await Network.saveData();
-                    
-                    const webUrl = Utils.getWebLink();
-                    await Network.sendToDiscord(false, "📩 CÓ BÀI NỘP MỚI", `Học sinh **${CURRENT_USER.n}** vừa nộp bài: *${DB.hw[hwIndex].title}*\n\n👉 **[CLICK VÀO ĐÂY ĐỂ VÀO WEB CHẤM BÀI](${webUrl})**`);
                 }
                 UI.hideLoading();
                 document.getElementById('viewHwModal').style.display='none';
@@ -629,7 +708,6 @@
                                     <img src="${ava}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
                                     <b>${sub.sname} <small>(${sub.sid})</small></b>
                                 </div>
-                                ${isLate ? '<span style="color:red; font-size:11px; font-weight:bold">NỘP TRỄ</span>' : ''}
                             </div>
                             <div style="font-size:12px; margin-top:10px">Link: ${sub.link ? `<a href="${sub.link}" target="_blank">Mở File</a>` : 'Không có'}</div>
                             <div style="font-size:12px; background:#f9f9f9; padding:5px; margin:5px 0">HS Ghi chú: ${sub.text || ''}</div>
@@ -662,7 +740,7 @@
                 alert("Đã lưu điểm bài tập!"); Router.nav('hw_manage');
             },
 
-            /* --- CÁC HÀM CŨ (CÓ CẬP NHẬT GIAO DIỆN & DISCORD) --- */
+            /* --- CÁC HÀM CŨ --- */
             addWeekVersion: async () => { const n = prompt("Tên tuần mới:"); if(n && !DB.weekList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.weekList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('grading'); } },
             addTKBVersion: async () => { const n = prompt("Tên TKB mới:"); if(n && !DB.scheduleList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.scheduleList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('schedule'); } },
             loadScheduleView: () => { const ver = document.getElementById('tkbSelect').value; const canEdit = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let html = `<div class="table-wrap"><table><thead><tr><th>Tiết</th><th>Thứ 2</th><th>Thứ 3</th><th>Thứ 4</th><th>Thứ 5</th><th>Thứ 6</th><th>Thứ 7</th></tr></thead><tbody>`; for(let i=1; i<=5; i++) { html += `<tr><td style="font-weight:bold; background:#f9f9f9">Tiết ${i}</td>`; for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; const val = (DB.schedule && DB.schedule[key]) ? DB.schedule[key] : ''; if(canEdit) html += `<td><input class="tkb-input" id="${key}" value="${val}" placeholder="..."></td>`; else html += `<td>${val || '-'}</td>`; } html += `</tr>`; } html += `</tbody></table></div>`; document.getElementById('tkbContainer').innerHTML = html; },
@@ -684,7 +762,6 @@
                 DB.reqs.push({ id: Date.now(), sid: CURRENT_USER.u, sname: CURRENT_USER.n, cls: CURRENT_USER.c, type: tText, txt: txt, st: 'Chờ', reply: '', secure: isSecure, date: fmtDate }); 
                 await Network.saveData(); 
                 
-                // KÈM LINK WEB VÀO DISCORD
                 const webUrl = Utils.getWebLink();
                 await Network.sendToDiscord(isSecure, isSecure ? "🔒 VĂN BẢN BẢO MẬT" : "📝 ĐƠN XIN NGHỈ", `**Học sinh:** ${CURRENT_USER.n}\n**Lớp:** ${DB.config.className}\n**Nội dung:** ${txt}\n\n👉 **[CLICK VÀO ĐÂY ĐỂ VÀO WEB DUYỆT ĐƠN](${webUrl})**`); 
                 
@@ -699,18 +776,20 @@
                 document.getElementById('replyTxt').value = ''; 
                 document.getElementById('statusPreview').innerText='Chưa chọn'; 
                 document.getElementById('statusPreview').className='badge bg-wait'; 
+                document.getElementById('statusPreview').style.background = '#eee';
+                document.getElementById('statusPreview').style.color = '#333';
                 
-                // Reset giao diện 2 nút chọn
                 const bA = document.getElementById('btnApprove'); const bR = document.getElementById('btnReject');
                 if(bA && bR) { bA.style.opacity = "1"; bA.style.border = "none"; bR.style.opacity = "1"; bR.style.border = "none"; }
             },
             
-            // CẬP NHẬT: Giao diện bấm Nút Duyệt/Từ Chối
             selectStatus: (st) => { 
                 selectedStatus = st; 
                 const el = document.getElementById('statusPreview'); 
                 el.innerText = st === 'Đã duyệt' ? 'Sẽ Duyệt' : 'Từ Chối'; 
                 el.className = st === 'Đã duyệt' ? 'badge bg-ok' : 'badge bg-no'; 
+                el.style.background = ''; // reset inline style
+                el.style.color = 'white';
                 
                 const bA = document.getElementById('btnApprove'); const bR = document.getElementById('btnReject');
                 if(st === 'Đã duyệt') {
@@ -727,7 +806,6 @@
                 if (!selectedStatus) return alert("Vui lòng Bấm Chọn trạng thái (Sẽ Duyệt / Từ chối) trước!"); 
                 const r = DB.reqs.find(x => x.id == currentReplyId); 
                 if(r) { 
-                    // CHẶN BẤM NHIỀU LẦN VÀ HIỆN LOADING
                     const btnSubmit = document.getElementById('btnReplySubmit');
                     btnSubmit.disabled = true;
                     btnSubmit.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang xử lý...';

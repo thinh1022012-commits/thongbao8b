@@ -167,13 +167,10 @@
 
     <script>
         /* ==========================================================================
-           PHẦN 1: CẤU HÌNH API & DISCORD
+           PHẦN 1: CẤU HÌNH API & DISCORD (ĐÃ ĐIỀN ĐỦ LINK CỦA BẠN 100%)
            ========================================================================== */
         const CONFIG = {
-            // 👇 BẠN HÃY DÁN LẠI LINK GOOGLE APPS SCRIPT CỦA BẠN VÀO ĐÂY 👇
-            API_URL: "DÁN_LINK_GOOGLE_SCRIPT_CỦA_BẠN_VÀO_ĐÂY", 
-            
-            // 2 LINK DISCORD ĐÃ TÍCH HỢP SẴN:
+            API_URL: "https://script.google.com/macros/s/AKfycbz5nIFpRMyvaDup5bwzRigkw7zr-n99mppGLY-u7QjLoZb_nv1GOErafeJAoZpU5jpn/exec", 
             WH_PUBLIC: "https://discord.com/api/webhooks/1456305070181449789/gySnBocRkplcH8UrQvWpnDkg_8472oeOUFCjgOh23NkaGKbMFd7_crtncR5CF44D9lk7",
             WH_PRIVATE: "https://discord.com/api/webhooks/1456659542699151598/j0LjBOW3wUnNN0p7lWeL5kvbfC4iITGuw5tZ47AWzVluPnsom1qrGGrKMRg3F1cIRRrY"
         };
@@ -199,7 +196,7 @@
 
         let DB = { 
             reqs: [], weekly: [], users: [], schedule: {}, hw: [], avatars: {}, 
-            attendance: {}, // Biến mới lưu lịch sử điểm danh
+            attendance: {}, 
             weekList: ["Tuần 1"], scheduleList: ["Học Kỳ 1"],
             config: { className: "LỚP 8B", schoolName: "TRƯỜNG THCS NGUYỄN VIẾT XUÂN", year: "2025 - 2026" } 
         };
@@ -281,7 +278,7 @@
                         if(!DB.schedule) DB.schedule = {};
                         if(!DB.hw) DB.hw = []; 
                         if(!DB.avatars) DB.avatars = {}; 
-                        if(!DB.attendance) DB.attendance = {}; // Thêm biến điểm danh
+                        if(!DB.attendance) DB.attendance = {}; 
                     }
                     UI.updateConfigText();
                 } catch(e) { console.error("Lỗi", e); }
@@ -294,7 +291,7 @@
                 const btn = document.getElementById('btnSync'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
                 UI.showLoading("Đang đồng bộ...");
                 await Network.loadData();
-                Features.checkDeadlines(); // Quét lại bài tập
+                Features.checkDeadlines(); 
                 UI.hideLoading(); btn.disabled = false; btn.innerHTML = '<i class="fa fa-sync"></i> Đồng bộ dữ liệu';
                 const activeItem = document.querySelector('.menu-item.active'); if(activeItem) activeItem.click();
             },
@@ -328,7 +325,7 @@
                 if (f) {
                     CURRENT_USER = f; document.getElementById('loginWrap').style.display = 'none'; document.getElementById('appWrap').style.display = 'flex';
                     UI.updateConfigText(); Router.renderMenu(); Router.nav('rules');
-                    Features.checkDeadlines(); // Quét hạn nộp bài
+                    Features.checkDeadlines(); 
                 } else { alert('Sai thông tin!'); }
             }
         };
@@ -433,7 +430,6 @@
                     c.innerHTML = mHtml;
                 }
 
-                // CẬP NHẬT: TÍNH NĂNG ĐIỂM DANH LỚP
                 else if(page === 'class_list') { 
                     let clsHtml = `<h2>👥 Điểm Danh Hôm Nay</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>STT</th><th>Ảnh</th><th>Mã ID</th><th>Họ và Tên</th><th>Trạng thái (Hôm nay)</th><th>Thao tác (GV)</th></tr></thead><tbody>`; 
                     
@@ -443,10 +439,7 @@
 
                     STUDENT_LIST.forEach((s, idx) => { 
                         const ava = DB.avatars[s.id] || 'https://i.imgur.com/6VBx3io.png';
-                        
-                        // 1. Kiểm tra đơn xin nghỉ học có phép
                         const isExcused = DB.reqs.some(r => r.sid === s.id && r.type === "Đơn xin nghỉ học" && r.st === "Đã duyệt" && r.date === todayStr);
-                        // 2. Kiểm tra vắng không phép (GV tự đánh dấu)
                         const isUnexcused = DB.attendance && DB.attendance[todayStr] && DB.attendance[todayStr].includes(s.id);
 
                         let statusBadge = '';
@@ -484,7 +477,7 @@
                             <input type="text" value="${CURRENT_USER.u}" disabled style="background:#eee; font-family:monospace">
                             
                             <label style="font-weight:bold; margin-top:10px; display:block">Link Ảnh Đại Diện / Ảnh bìa:</label>
-                            <div style="font-size:12px; color:#888; margin-bottom:5px">⚠️ Hãy tải ảnh lên trang <a href="https://postimages.org/" target="_blank" style="color:var(--pri)">Postimages</a>, copy "Direct link" và dán vào đây. Không dán ảnh trực tiếp!</div>
+                            <div style="font-size:12px; color:#888; margin-bottom:5px">⚠️ Hãy tải ảnh lên trang <a href="https://postimages.org/" target="_blank" style="color:var(--pri)">Postimages</a>, copy "Direct link" và dán vào đây. Không dán ảnh trực tiếp từ máy để tránh lỗi!</div>
                             <input type="url" id="inpAvatar" placeholder="https://..." value="${avatarUrl}">
                             
                             <hr style="border:0; border-top:1px solid #eee; margin:20px 0">
@@ -524,7 +517,6 @@
         };
 
         const Features = {
-            /* --- TÍNH NĂNG: GIÁO VIÊN BẤM ĐIỂM DANH THỦ CÔNG --- */
             toggleAttendance: async (sId, dateStr) => {
                 UI.showLoading("Đang cập nhật điểm danh...");
                 if (!DB.attendance) DB.attendance = {};
@@ -532,17 +524,16 @@
 
                 const idx = DB.attendance[dateStr].indexOf(sId);
                 if (idx > -1) {
-                    DB.attendance[dateStr].splice(idx, 1); // Gỡ báo vắng -> Thành có mặt
+                    DB.attendance[dateStr].splice(idx, 1); 
                 } else {
-                    DB.attendance[dateStr].push(sId); // Báo vắng không phép
+                    DB.attendance[dateStr].push(sId); 
                 }
 
                 await Network.saveData();
                 UI.hideLoading();
-                Router.nav('class_list'); // Refresh lại giao diện ngay
+                Router.nav('class_list'); 
             },
 
-            /* --- BẢO VỆ CHỐNG SẬP SERVER --- */
             updateProfile: async () => {
                 const avaUrl = document.getElementById('inpAvatar').value;
                 const oldP = document.getElementById('oldP').value;
@@ -581,7 +572,6 @@
                 }
             },
 
-            /* --- TÍNH NĂNG TỰ ĐỘNG KHÓA VÀ GỬI BÁO CÁO NHỮNG NGƯỜI CHƯA NỘP LÊN NHÓM --- */
             checkDeadlines: async () => {
                 if (!CURRENT_USER || (CURRENT_USER.r !== 'teacher' && CURRENT_USER.r !== 'admin')) return;
                 if (!DB.hw || DB.hw.length === 0) return;
@@ -611,7 +601,6 @@
                 if (needSave) await Network.saveData(); 
             },
 
-            /* --- BÀI TẬP VỀ NHÀ --- */
             submitNewHW: async () => {
                 const title = document.getElementById('hwTitle').value;
                 const desc = document.getElementById('hwDesc').value;
@@ -625,7 +614,7 @@
                 await Network.saveData();
                 
                 const webUrl = Utils.getWebLink();
-                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n\n👉 **[HỌC SINH CLICK VÀO ĐÂY ĐỂ NỘP BÀI](${webUrl})**`);
+                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n\n👉 **[HỌC SINH CLICK VÀO ĐÂY ĐỂ VÀO WEB NỘP BÀI](${webUrl})**`);
                 
                 UI.hideLoading(); btn.disabled = false; btn.innerText = "Giao Bài Ngay";
                 document.getElementById('createHwModal').style.display='none';
@@ -685,6 +674,10 @@
                     if(!DB.hw[hwIndex].subs) DB.hw[hwIndex].subs = [];
                     DB.hw[hwIndex].subs.push({ sid: CURRENT_USER.u, sname: CURRENT_USER.n, link: link, text: text, time: new Date().toISOString(), grade: '', note: '' });
                     await Network.saveData();
+                    
+                    const webUrl = Utils.getWebLink();
+                    // SỬA Ở ĐÂY: Dùng link bí mật (true) gửi bài cho GV
+                    await Network.sendToDiscord(true, "📩 CÓ BÀI NỘP MỚI", `Học sinh **${CURRENT_USER.n}** vừa nộp bài: *${DB.hw[hwIndex].title}*\n\n👉 **[CLICK VÀO ĐÂY ĐỂ VÀO WEB CHẤM BÀI](${webUrl})**`);
                 }
                 UI.hideLoading();
                 document.getElementById('viewHwModal').style.display='none';
@@ -708,6 +701,7 @@
                                     <img src="${ava}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
                                     <b>${sub.sname} <small>(${sub.sid})</small></b>
                                 </div>
+                                ${isLate ? '<span style="color:red; font-size:11px; font-weight:bold">NỘP TRỄ</span>' : ''}
                             </div>
                             <div style="font-size:12px; margin-top:10px">Link: ${sub.link ? `<a href="${sub.link}" target="_blank">Mở File</a>` : 'Không có'}</div>
                             <div style="font-size:12px; background:#f9f9f9; padding:5px; margin:5px 0">HS Ghi chú: ${sub.text || ''}</div>
@@ -740,7 +734,6 @@
                 alert("Đã lưu điểm bài tập!"); Router.nav('hw_manage');
             },
 
-            /* --- CÁC HÀM CŨ --- */
             addWeekVersion: async () => { const n = prompt("Tên tuần mới:"); if(n && !DB.weekList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.weekList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('grading'); } },
             addTKBVersion: async () => { const n = prompt("Tên TKB mới:"); if(n && !DB.scheduleList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.scheduleList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('schedule'); } },
             loadScheduleView: () => { const ver = document.getElementById('tkbSelect').value; const canEdit = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let html = `<div class="table-wrap"><table><thead><tr><th>Tiết</th><th>Thứ 2</th><th>Thứ 3</th><th>Thứ 4</th><th>Thứ 5</th><th>Thứ 6</th><th>Thứ 7</th></tr></thead><tbody>`; for(let i=1; i<=5; i++) { html += `<tr><td style="font-weight:bold; background:#f9f9f9">Tiết ${i}</td>`; for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; const val = (DB.schedule && DB.schedule[key]) ? DB.schedule[key] : ''; if(canEdit) html += `<td><input class="tkb-input" id="${key}" value="${val}" placeholder="..."></td>`; else html += `<td>${val || '-'}</td>`; } html += `</tr>`; } html += `</tbody></table></div>`; document.getElementById('tkbContainer').innerHTML = html; },
@@ -750,6 +743,7 @@
             
             renderFormPaper: () => { const t = document.getElementById('fType').value; const a = document.getElementById('paperArea'); const header = `<div class="legal-header"><div class="legal-nation">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class="legal-motto">Độc lập - Tự do - Hạnh phúc</div></div>`; window.updateFooterDate = function(el) { const d = new Date(el.value); if(!isNaN(d.getTime())) { document.getElementById('footerDate').innerText = `Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`; } }; let body = ''; if(t === 'nghi') { body = `<div class="legal-title">ĐƠN XIN NGHỈ HỌC</div><p>Kính gửi: GVCN ${DB.config.className}</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Xin nghỉ từ: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Lý do: <input id="fTxt" class="legal-input" style="width:70%" placeholder="..."></p>`; } else if(t === 'tuongtrinh') { body = `<div class="legal-title">BẢN TƯỜNG TRÌNH</div><p>Kính gửi: GVCN</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Nội dung: <input id="fTxt" class="legal-input" style="width:100%; margin-top:10px"></p>`; } else { body = `<div class="legal-title">BẢN CAM KẾT</div><p>Kính gửi: GVCN</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Cam kết: <input id="fTxt" class="legal-input" style="width:100%; margin-top:10px"></p>`; } a.innerHTML = `<div class="legal-paper">${header}${body}<br><br><div style="text-align:right"><i id="footerDate">Ngày... tháng... năm...</i><br><b>Người làm đơn</b><br><br><br><br>${CURRENT_USER.n}</div></div>`; },
             
+            // TÍNH NĂNG GỬI ĐƠN VÀ ĐÍNH KÈM LINK WEB LÊN DISCORD
             sendForm: async () => { 
                 const txt = document.getElementById('fTxt').value; const dateVal = document.getElementById('datePicker').value; 
                 if(!txt || !dateVal) return alert('Thiếu thông tin!'); 
@@ -762,8 +756,9 @@
                 DB.reqs.push({ id: Date.now(), sid: CURRENT_USER.u, sname: CURRENT_USER.n, cls: CURRENT_USER.c, type: tText, txt: txt, st: 'Chờ', reply: '', secure: isSecure, date: fmtDate }); 
                 await Network.saveData(); 
                 
+                // LẤY LINK WEB VÀ GẮN VÀO TIN NHẮN DISCORD
                 const webUrl = Utils.getWebLink();
-                await Network.sendToDiscord(isSecure, isSecure ? "🔒 VĂN BẢN BẢO MẬT" : "📝 ĐƠN XIN NGHỈ", `**Học sinh:** ${CURRENT_USER.n}\n**Lớp:** ${DB.config.className}\n**Nội dung:** ${txt}\n\n👉 **[CLICK VÀO ĐÂY ĐỂ VÀO WEB DUYỆT ĐƠN](${webUrl})**`); 
+                await Network.sendToDiscord(isSecure, isSecure ? "🔒 VĂN BẢN BẢO MẬT" : "📝 ĐƠN XIN NGHỈ", `**Học sinh:** ${CURRENT_USER.n}\n**Lớp:** ${DB.config.className}\n**Nội dung:** ${txt}\n\n🔗 **[BẤM VÀO ĐÂY ĐỂ ĐI TỚI TRANG WEB DUYỆT ĐƠN](${webUrl})**`); 
                 
                 UI.hideLoading(); 
                 btn.disabled = false; btn.innerHTML = '<i class="fa fa-paper-plane"></i> GỬI ĐƠN NÀY LÊN GIÁO VIÊN';
@@ -788,7 +783,7 @@
                 const el = document.getElementById('statusPreview'); 
                 el.innerText = st === 'Đã duyệt' ? 'Sẽ Duyệt' : 'Từ Chối'; 
                 el.className = st === 'Đã duyệt' ? 'badge bg-ok' : 'badge bg-no'; 
-                el.style.background = ''; // reset inline style
+                el.style.background = ''; 
                 el.style.color = 'white';
                 
                 const bA = document.getElementById('btnApprove'); const bR = document.getElementById('btnReject');

@@ -61,9 +61,9 @@
         .btn-danger { background: #e74c3c; }
         
         .table-wrap { overflow-x: auto; }
-        table { width:100%; border-collapse:collapse; margin-top:10px; min-width: 600px; }
-        th { text-align:left; color:#777; font-size:12px; text-transform:uppercase; padding:10px; border-bottom:2px solid #eee; background: #f8f9fa; text-align: center;}
-        td { padding:10px; border-bottom:1px solid #eee; vertical-align:middle; font-size: 13px; text-align: center;}
+        table { width:100%; border-collapse:collapse; margin-top:10px; min-width: 600px; border: 1px solid #eee; }
+        th { text-align:left; color:#777; font-size:12px; text-transform:uppercase; padding:10px; border:1px solid #eee; background: #f8f9fa; text-align: center;}
+        td { padding:10px; border:1px solid #eee; vertical-align:middle; font-size: 13px; text-align: center;}
         .badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:bold; color:white; display: inline-block;}
         .bg-ok { background:#00b894; } .bg-wait { background:#f39c12; color:#fff; } .bg-no { background:#e74c3c; }
 
@@ -80,6 +80,9 @@
         .hw-meta { font-size: 12px; color: #666; margin-bottom: 10px; display:flex; gap:15px; flex-wrap:wrap;}
         .hw-desc { font-size: 14px; background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
         .text-danger { color: #e74c3c; font-weight: bold; }
+        
+        .tkb-input { width: 100%; border: none; text-align: center; background: transparent; font-size: 13px; padding: 5px; box-sizing:border-box; }
+        .tkb-input:focus { background: #eef2ff; outline: 1px solid var(--pri); border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -167,7 +170,7 @@
 
     <script>
         /* ==========================================================================
-           PHẦN 1: CẤU HÌNH API & DISCORD
+           PHẦN 1: CẤU HÌNH API & DISCORD (ĐÃ ĐIỀN ĐỦ LINK CỦA BẠN 100%)
            ========================================================================== */
         const CONFIG = {
             API_URL: "https://script.google.com/macros/s/AKfycbz5nIFpRMyvaDup5bwzRigkw7zr-n99mppGLY-u7QjLoZb_nv1GOErafeJAoZpU5jpn/exec", 
@@ -430,7 +433,6 @@
                     c.innerHTML = mHtml;
                 }
 
-                // CẬP NHẬT: Sửa lỗi hiển thị trạng thái điểm danh
                 else if(page === 'class_list') { 
                     const todayObj = new Date();
                     const todayStr = `${todayObj.getDate()}/${todayObj.getMonth()+1}/${todayObj.getFullYear()}`;
@@ -440,7 +442,6 @@
                     
                     STUDENT_LIST.forEach((s, idx) => { 
                         const ava = DB.avatars[s.id] || 'https://i.imgur.com/6VBx3io.png';
-                        // SỬA: Thay vì so sánh chuỗi bằng (===), dùng includes("nghi") để đảm bảo nhận diện chính xác mọi loại đơn xin nghỉ
                         const isExcused = DB.reqs.some(r => r.sid === s.id && r.type.includes("nghi") && r.st === "Đã duyệt" && r.date === todayStr);
                         const isUnexcused = DB.attendance && DB.attendance[todayStr] && DB.attendance[todayStr].includes(s.id);
 
@@ -508,7 +509,16 @@
                 }
 
                 else if(page === 'rules') c.innerHTML = `<div style="display:flex; gap:20px; flex-wrap:wrap;"><div class="card" style="flex:1; min-width:280px"><h3>🏛️ NỘI QUY ${DB.config.schoolName}</h3><ul><li>Đi học đúng giờ.</li><li>Lễ phép với thầy cô.</li><li>Giữ gìn vệ sinh chung.</li></ul></div><div class="card" style="flex:1; min-width:280px"><h3>🏫 NỘI QUY ${DB.config.className}</h3><ul><li>Truy bài 15 phút đầu giờ.</li><li>Không dùng điện thoại trong giờ.</li><li>Đoàn kết, giúp đỡ bạn bè.</li></ul></div></div>`;
-                else if(page === 'schedule') { const canEditTkb = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let optTkb = ''; DB.scheduleList.forEach(s => optTkb += `<option value="${s}">${s}</option>`); c.innerHTML = `<div class="flex-control"><h2>📅 Thời Khóa Biểu</h2><select id="tkbSelect" onchange="Features.loadScheduleView()" style="flex:1">${optTkb}</select>${canEditTkb ? `<button class="btn btn-green" onclick="Features.addTKBVersion()">+ Thêm Giai đoạn</button>` : ''}</div><div class="card" id="tkbContainer"></div>${canEditTkb ? `<button class="btn" style="margin-top:10px" id="btnSaveTKB" onclick="Features.saveSchedule()"><i class="fa fa-save"></i> Lưu Thời Khóa Biểu này</button>` : ''}`; Features.loadScheduleView(); }
+                
+                // CẬP NHẬT: GIAO DIỆN THỜI KHÓA BIỂU (SÁNG / CHIỀU)
+                else if(page === 'schedule') { 
+                    const canEditTkb = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); 
+                    let optTkb = ''; 
+                    DB.scheduleList.forEach(s => optTkb += `<option value="${s}">${s}</option>`); 
+                    c.innerHTML = `<div class="flex-control"><h2>📅 Thời Khóa Biểu</h2><select id="tkbSelect" onchange="Features.loadScheduleView()" style="flex:1">${optTkb}</select>${canEditTkb ? `<button class="btn btn-green" onclick="Features.addTKBVersion()">+ Thêm Giai đoạn</button>` : ''}</div><div class="card" id="tkbContainer"></div>${canEditTkb ? `<button class="btn" style="margin-top:10px" id="btnSaveTKB" onclick="Features.saveSchedule()"><i class="fa fa-save"></i> Lưu Thời Khóa Biểu này</button>` : ''}`; 
+                    Features.loadScheduleView(); 
+                }
+                
                 else if(page === 'form') { c.innerHTML = `<div class="card"><div class="flex-control" style="justify-content:space-between"><h2>📝 Soạn Văn Bản</h2><select id="fType" onchange="Features.renderFormPaper()" style="width:200px"><option value="nghi">Đơn xin nghỉ học</option><option value="tuongtrinh">Bản tường trình</option><option value="camket">Bản cam kết</option></select></div><div id="paperArea" style="background:#ccc; padding:20px;"></div><button class="btn" id="btnSendForm" style="margin-top:20px; width:100%" onclick="Features.sendForm()"><i class="fa fa-paper-plane"></i> GỬI ĐƠN NÀY LÊN GIÁO VIÊN</button></div>`; Features.renderFormPaper(); }
                 else if(page === 'mailbox') { const myReqs = DB.reqs.filter(r => r.sid === CURRENT_USER.u).reverse(); let mailHtml = `<h2>📬 Hộp Thư Đơn Từ</h2><div class="card">`; if(myReqs.length === 0) mailHtml += `<p>Trống.</p>`; myReqs.forEach(r => { let badgeClass = r.st === 'Đã duyệt' ? 'bg-ok' : (r.st === 'Hủy' ? 'bg-no' : 'bg-wait'); mailHtml += `<div style="border-bottom:1px solid #eee; padding:15px 0"><div style="display:flex; justify-content:space-between"><b style="color:var(--pri)">${r.type}</b><span class="badge ${badgeClass}">${r.st}</span></div><div style="font-size:13px; color:#555; margin-top:5px">Ngày: ${r.date}</div><div style="background:#f9f9f9; padding:10px; margin-top:10px; border-left:3px solid var(--pri)"><b>💬 GV Nhắn:</b> ${r.reply || '<i>Đang chờ...</i>'}</div></div>`; }); c.innerHTML = mailHtml + `</div>`; }
                 else if(page === 'approve') { const allReqs = DB.reqs.filter(r => CURRENT_USER.r === 'admin' || r.cls === CURRENT_USER.c).reverse(); let tblHtml = `<h2>✅ Duyệt Đơn Từ HS</h2><div class="card"><div class="table-wrap"><table><thead><tr><th>Học sinh</th><th>Loại Đơn</th><th>Nội dung</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>`; if(allReqs.length === 0) tblHtml += `<tr><td colspan="5">Trống</td></tr>`; allReqs.forEach(r => { let badge = r.st === 'Đã duyệt' ? 'bg-ok' : (r.st === 'Hủy' ? 'bg-no' : 'bg-wait'); let actionBtn = (r.st === 'Chờ' && CURRENT_USER.r !== 'admin') ? `<button class="btn btn-sm btn-blue" onclick="Features.openReply('${r.id}')"><i class="fa fa-reply"></i> Phản hồi</button>` : (r.st === 'Chờ' ? 'Chờ GV' : `<span style="color:#00b894; font-size:12px; font-weight:bold"><i class="fa fa-check"></i> Đã xử lý</span>`); tblHtml += `<tr><td><b>${r.sname}</b><br><small>${r.sid}</small></td><td>${r.secure?'<i class="fa fa-lock" style="color:red"></i> ':''}${r.type}</td><td><b style="color:#666">${r.date}</b><br>${r.txt}</td><td><span class="badge ${badge}">${r.st}</span></td><td>${actionBtn}</td></tr>`; }); c.innerHTML = tblHtml + `</tbody></table></div></div>`; }
@@ -616,7 +626,7 @@
                 await Network.saveData();
                 
                 const webUrl = Utils.getWebLink();
-                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n\n👉 **[HỌC SINH CLICK VÀO ĐÂY ĐỂ NỘP BÀI](${webUrl})**`);
+                await Network.sendToDiscord(false, "📢 BÀI TẬP MỚI", `Giáo viên vừa giao bài tập mới.\n**Bài:** ${title}\n**Hạn nộp:** ${Utils.formatDate(deadline)}\n\n👉 **[HỌC SINH CLICK VÀO ĐÂY ĐỂ VÀO WEB NỘP BÀI](${webUrl})**`);
                 
                 UI.hideLoading(); btn.disabled = false; btn.innerText = "Giao Bài Ngay";
                 document.getElementById('createHwModal').style.display='none';
@@ -736,14 +746,68 @@
 
             addWeekVersion: async () => { const n = prompt("Tên tuần mới:"); if(n && !DB.weekList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.weekList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('grading'); } },
             addTKBVersion: async () => { const n = prompt("Tên TKB mới:"); if(n && !DB.scheduleList.includes(n)) { UI.showLoading("Đang xử lý..."); DB.scheduleList.push(n); await Network.saveData(); UI.hideLoading(); Router.nav('schedule'); } },
-            loadScheduleView: () => { const ver = document.getElementById('tkbSelect').value; const canEdit = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); let html = `<div class="table-wrap"><table><thead><tr><th>Tiết</th><th>Thứ 2</th><th>Thứ 3</th><th>Thứ 4</th><th>Thứ 5</th><th>Thứ 6</th><th>Thứ 7</th></tr></thead><tbody>`; for(let i=1; i<=5; i++) { html += `<tr><td style="font-weight:bold; background:#f9f9f9">Tiết ${i}</td>`; for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; const val = (DB.schedule && DB.schedule[key]) ? DB.schedule[key] : ''; if(canEdit) html += `<td><input class="tkb-input" id="${key}" value="${val}" placeholder="..."></td>`; else html += `<td>${val || '-'}</td>`; } html += `</tr>`; } html += `</tbody></table></div>`; document.getElementById('tkbContainer').innerHTML = html; },
-            saveSchedule: async () => { const btn = document.getElementById('btnSaveTKB'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...'; UI.showLoading("Đang lưu..."); const ver = document.getElementById('tkbSelect').value; for(let i=1; i<=5; i++) { for(let d=2; d<=7; d++) { const key = `${ver}_d${d}_t${i}`; DB.schedule[key] = document.getElementById(key).value; } } await Network.saveData(); UI.hideLoading(); btn.disabled = false; btn.innerHTML = '<i class="fa fa-save"></i> Lưu Thời Khóa Biểu này'; alert("Đã lưu TKB!"); },
+            
+            // CẬP NHẬT: HIỂN THỊ THỜI KHÓA BIỂU SÁNG CHIỀU (9 TIẾT)
+            loadScheduleView: () => { 
+                const ver = document.getElementById('tkbSelect').value; 
+                const canEdit = (CURRENT_USER.r === 'teacher' || CURRENT_USER.r === 'admin'); 
+                let html = `<div class="table-wrap"><table><thead><tr><th style="width:50px">Buổi</th><th>Tiết</th><th>Thứ 2</th><th>Thứ 3</th><th>Thứ 4</th><th>Thứ 5</th><th>Thứ 6</th><th>Thứ 7</th></tr></thead><tbody>`; 
+                
+                // BUỔI SÁNG (Tiết 1 đến Tiết 5)
+                for(let i=1; i<=5; i++) { 
+                    html += `<tr>`;
+                    if(i===1) html += `<td rowspan="5" style="font-weight:bold; background:#eef2ff; writing-mode: vertical-rl; transform: rotate(180deg); text-align:center; color:var(--pri);">SÁNG</td>`;
+                    html += `<td style="font-weight:bold; background:#f9f9f9">Tiết ${i}</td>`; 
+                    for(let d=2; d<=7; d++) { 
+                        const key = `${ver}_d${d}_t${i}`; 
+                        const val = (DB.schedule && DB.schedule[key]) ? DB.schedule[key] : ''; 
+                        if(canEdit) html += `<td><input class="tkb-input" id="${key}" value="${val}" placeholder="..."></td>`; 
+                        else html += `<td>${val || '-'}</td>`; 
+                    } 
+                    html += `</tr>`; 
+                } 
+
+                // BUỔI CHIỀU (Tiết 6 đến Tiết 9 - Đại diện cho trái buổi Tiết 1 đến Tiết 4)
+                for(let i=6; i<=9; i++) { 
+                    html += `<tr>`;
+                    if(i===6) html += `<td rowspan="4" style="font-weight:bold; background:#fffbe6; writing-mode: vertical-rl; transform: rotate(180deg); text-align:center; color:#f39c12;">CHIỀU<br><small style="font-weight:normal">(Trái buổi)</small></td>`;
+                    html += `<td style="font-weight:bold; background:#f9f9f9">Tiết ${i-5}</td>`; 
+                    for(let d=2; d<=7; d++) { 
+                        const key = `${ver}_d${d}_t${i}`; 
+                        const val = (DB.schedule && DB.schedule[key]) ? DB.schedule[key] : ''; 
+                        if(canEdit) html += `<td><input class="tkb-input" id="${key}" value="${val}" placeholder="..."></td>`; 
+                        else html += `<td>${val || '-'}</td>`; 
+                    } 
+                    html += `</tr>`; 
+                } 
+
+                html += `</tbody></table></div>`; 
+                document.getElementById('tkbContainer').innerHTML = html; 
+            },
+            
+            // CẬP NHẬT: LƯU TKB TỪ TIẾT 1 ĐẾN TIẾT 9
+            saveSchedule: async () => { 
+                const btn = document.getElementById('btnSaveTKB'); 
+                btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...'; 
+                UI.showLoading("Đang lưu..."); 
+                const ver = document.getElementById('tkbSelect').value; 
+                for(let i=1; i<=9; i++) { 
+                    for(let d=2; d<=7; d++) { 
+                        const key = `${ver}_d${d}_t${i}`; 
+                        DB.schedule[key] = document.getElementById(key).value; 
+                    } 
+                } 
+                await Network.saveData(); 
+                UI.hideLoading(); 
+                btn.disabled = false; btn.innerHTML = '<i class="fa fa-save"></i> Lưu Thời Khóa Biểu này'; 
+                alert("Đã lưu TKB!"); 
+            },
+
             changePassByAdmin: async (uid, uname) => { const newP = prompt(`Mật khẩu mới cho [${uname}]:`); if(!newP) return; UI.showLoading(`Đang xử lý...`); const u = DB.users.find(x => x.u === uid); if(u) { u.p = newP; await Network.saveData(); } UI.hideLoading(); alert("Đổi thành công!"); Router.nav('accounts'); },
             saveSettings: async () => { const btn = document.getElementById('btnSaveSet'); btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...'; UI.showLoading("Đang lưu..."); DB.config.className = document.getElementById('set_class').value; DB.config.schoolName = document.getElementById('set_school').value; DB.config.year = document.getElementById('set_year').value; await Network.saveData(); UI.updateConfigText(); UI.hideLoading(); btn.disabled = false; btn.innerHTML = 'LƯU'; alert("Thành công!"); },
             
             renderFormPaper: () => { const t = document.getElementById('fType').value; const a = document.getElementById('paperArea'); const header = `<div class="legal-header"><div class="legal-nation">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div><div class="legal-motto">Độc lập - Tự do - Hạnh phúc</div></div>`; window.updateFooterDate = function(el) { const d = new Date(el.value); if(!isNaN(d.getTime())) { document.getElementById('footerDate').innerText = `Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`; } }; let body = ''; if(t === 'nghi') { body = `<div class="legal-title">ĐƠN XIN NGHỈ HỌC</div><p>Kính gửi: GVCN ${DB.config.className}</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Xin nghỉ từ: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Lý do: <input id="fTxt" class="legal-input" style="width:70%" placeholder="..."></p>`; } else if(t === 'tuongtrinh') { body = `<div class="legal-title">BẢN TƯỜNG TRÌNH</div><p>Kính gửi: GVCN</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Nội dung: <input id="fTxt" class="legal-input" style="width:100%; margin-top:10px"></p>`; } else { body = `<div class="legal-title">BẢN CAM KẾT</div><p>Kính gửi: GVCN</p><p>Em tên: <b>${CURRENT_USER.n}</b></p><p>Ngày: <input type="date" id="datePicker" class="date-input" onchange="updateFooterDate(this)"></p><p>Cam kết: <input id="fTxt" class="legal-input" style="width:100%; margin-top:10px"></p>`; } a.innerHTML = `<div class="legal-paper">${header}${body}<br><br><div style="text-align:right"><i id="footerDate">Ngày... tháng... năm...</i><br><b>Người làm đơn</b><br><br><br><br>${CURRENT_USER.n}</div></div>`; },
             
-            // SỬA LỖI ĐIỂM DANH LỆCH NGÀY
             sendForm: async () => { 
                 const txt = document.getElementById('fTxt').value; 
                 const dateVal = document.getElementById('datePicker').value; 
@@ -752,7 +816,6 @@
                 btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang Gửi...';
                 UI.showLoading("Đang gửi..."); 
                 
-                // KHẮC PHỤC LỖI TIMEZONE CỦA MÁY TÍNH
                 const parts = dateVal.split('-');
                 const fmtDate = `${parseInt(parts[2], 10)}/${parseInt(parts[1], 10)}/${parts[0]}`;
                 
